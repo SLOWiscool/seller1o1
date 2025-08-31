@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vercel Mail</title>
+<title>Temp Mail</title>
 <style>
 body { font-family: Arial; background:#f4f4f4; text-align:center; padding:40px;}
 .container { background:white; padding:30px; border-radius:8px; max-width:500px; margin:auto; box-shadow:0 2px 12px rgba(0,0,0,0.1);}
-input { width:90%; padding:10px; margin:10px 0; border-radius:4px; border:1px solid #ccc;}
-button { padding:10px 20px; border:none; border-radius:4px; cursor:pointer; background:#1a73e8; color:white; font-weight:bold;}
+input, button { padding:10px; margin:10px 0; border-radius:4px; border:1px solid #ccc;}
+button { cursor:pointer; background:#1a73e8; color:white; border:none; font-weight:bold;}
 button:hover{background:#1669c1;}
 ul { list-style:none; padding:0; text-align:left;}
 li { border-bottom:1px solid #ddd; padding:10px; cursor:pointer;}
@@ -18,7 +18,7 @@ li:hover{background:#f0f0f0;}
 </head>
 <body>
 <div class="container">
-<h1>Vercel Mail</h1>
+<h1>Temp Mail</h1>
 <button id="genEmail">Generate Email</button>
 <p id="emailDisplay"></p>
 <button id="checkInbox" style="display:none;">Check Inbox</button>
@@ -29,41 +29,59 @@ li:hover{background:#f0f0f0;}
 
 <script>
 let email="";
-let login="";
-let domain="";
+let token="";
 
-document.getElementById("genEmail").onclick = async ()=>{
-    const r=await fetch("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1");
-    const data=await r.json();
-    email=data[0];
-    [login,domain]=email.split("@");
-    document.getElementById("emailDisplay").innerText=email;
+async function generateEmail(){
+    const r = await fetch("https://api.mail.tm/accounts", {
+        method:"POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: `user${Math.floor(Math.random()*10000)}@mail.tm`, password:"password123!" })
+    });
+    const data = await r.json();
+    email = data.address;
+    document.getElementById("emailDisplay").innerText = email;
+
+    // login to get token
+    const loginRes = await fetch("https://api.mail.tm/token", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ address: email, password:"password123!" })
+    });
+    const loginData = await loginRes.json();
+    token = loginData.token;
+
     document.getElementById("checkInbox").style.display="inline-block";
     document.getElementById("messages").innerHTML="";
     document.getElementById("msgContent").style.display="none";
-};
+}
 
-document.getElementById("checkInbox").onclick = async ()=>{
-    if(!email) return;
-    const r=await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
-    const data=await r.json();
-    const ul=document.getElementById("messages");
+async function fetchInbox(){
+    const r = await fetch("https://api.mail.tm/messages", {
+        headers:{ "Authorization": `Bearer ${token}` }
+    });
+    const data = await r.json();
+    const ul = document.getElementById("messages");
     ul.innerHTML="";
-    data.forEach(msg=>{
-        const li=document.createElement("li");
-        li.innerText=msg.from+" — "+msg.subject;
-        li.onclick=()=>readMessage(msg.id);
+    data["hydra:member"].forEach(msg=>{
+        const li = document.createElement("li");
+        li.innerText = msg.from.address + " — " + msg.subject;
+        li.onclick = ()=>readMessage(msg.id);
         ul.appendChild(li);
     });
-};
+}
 
 async function readMessage(id){
-    const r=await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
-    const data=await r.json();
-    const div=document.getElementById("msgContent");
-    div.innerHTML="<strong>From:</strong> "+data.from+"<br><strong>Subject:</strong> "+data.subject+"<br><p>"+(data.textBody||data.htmlBody)+"</p>";
+    const r = await fetch(`https://api.mail.tm/messages/${id}`, {
+        headers:{ "Authorization": `Bearer ${token}` }
+    });
+    const data = await r.json();
+    const div = document.getElementById("msgContent");
+    div.innerHTML = `<strong>From:</strong> ${data.from.address}<br><strong>Subject:</strong> ${data.subject}<br><p>${data.text}</p>`;
     div.style.display="block";
 }
+
+document.getElementById("genEmail").onclick = generateEmail;
+document.getElementById("checkInbox").onclick = fetchInbox;
 </script>
 </body>
 </html>
