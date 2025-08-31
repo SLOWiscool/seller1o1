@@ -1,102 +1,69 @@
-
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>SmurfVilla x ZST :: Welcome to SmurfVilla x ZST</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no, maximum-scale=1.0"><meta name="theme-color" content="#f4f4f4"><meta name="msapplication-navbutton-color" content="#f4f4f4">
-	<link rel="shortcut icon" href="https://smurfvilla.zst.email/logo.png">
-	<link rel="stylesheet" href="skins/elastic/deps/bootstrap.min.css?s=1725175902">
-	
-		<link rel="stylesheet" href="skins/elastic/styles/styles.min.css?s=1725175896">
-		
-	
-	
-		<script type="6afdf79fe93c4491c91cdcaf-text/javascript">
-		try {
-			if (document.cookie.indexOf('colorMode=dark') > -1
-				|| (document.cookie.indexOf('colorMode=light') === -1 && window.matchMedia('(prefers-color-scheme: dark)').matches)
-			) {
-				document.documentElement.className += ' dark-mode';
-			}
-		} catch (e) { }
-		</script>
-	
-<link rel="stylesheet" type="text/css" href="plugins/jqueryui/themes/elastic/jquery-ui.min.css?s=1725175896"><script src="program/js/jquery.min.js?s=1725175899" type="6afdf79fe93c4491c91cdcaf-text/javascript"></script><script src="program/js/common.min.js?s=1725175896" type="6afdf79fe93c4491c91cdcaf-text/javascript"></script><script src="program/js/app.min.js?s=1725175896" type="6afdf79fe93c4491c91cdcaf-text/javascript"></script><script src="program/js/jstz.min.js?s=1725175900" type="6afdf79fe93c4491c91cdcaf-text/javascript"></script><script type="6afdf79fe93c4491c91cdcaf-text/javascript">
-/*
-        @licstart  The following is the entire license notice for the 
-        JavaScript code in this page.
-
-        Copyright (C) The Roundcube Dev Team
-
-        The JavaScript code in this page is free software: you can redistribute
-        it and/or modify it under the terms of the GNU General Public License
-        as published by the Free Software Foundation, either version 3 of
-        the License, or (at your option) any later version.
-
-        The code is distributed WITHOUT ANY WARRANTY; without even the implied
-        warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-        See the GNU GPL for more details.
-
-        @licend  The above is the entire license notice
-        for the JavaScript code in this page.
-*/
-var rcmail = new rcube_webmail();
-rcmail.set_env({"task":"login","standard_windows":false,"locale":"en_US","devel_mode":null,"rcversion":10609,"cookie_domain":"","cookie_path":"/","cookie_secure":true,"dark_mode_support":true,"skin":"elastic","blankpage":"skins/elastic/watermark.html","refresh_interval":60,"session_lifetime":600,"action":"","comm_path":"/?_task=login","compose_extwin":false,"date_format":"yy-mm-dd","date_format_localized":"YYYY-MM-DD","additional_logos":{"dark":"https://smurfvilla.zst.email/logo.png","small":"https://smurfvilla.zst.email/logo.png","small-dark":"https://smurfvilla.zst.email/logo.png"},"request_token":"w15ye2cE8XLjBFGOQMm8njCTN6zKdWnl"});
-rcmail.add_label({"loading":"Loading...","servererror":"Server Error!","connerror":"Connection Error (Failed to reach the server)!","requesttimedout":"Request timed out","refreshing":"Refreshing...","windowopenerror":"The popup window was blocked!","uploadingmany":"Uploading files...","uploading":"Uploading file...","close":"Close","save":"Save","cancel":"Cancel","alerttitle":"Attention","confirmationtitle":"Are you sure...","delete":"Delete","continue":"Continue","ok":"OK","back":"Back","errortitle":"An error occurred!","options":"Options","plaintoggle":"Plain text","htmltoggle":"HTML","previous":"Previous","next":"Next","select":"Select","browse":"Browse","choosefile":"Choose file...","choosefiles":"Choose files..."});
-rcmail.gui_container("loginfooter","login-footer");rcmail.gui_object('loginform', 'login-form');
-rcmail.gui_object('message', 'messagestack');
-</script>
-
-<script src="plugins/jqueryui/js/jquery-ui.min.js?s=1725175896" type="6afdf79fe93c4491c91cdcaf-text/javascript"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vercel Mail</title>
+<style>
+body { font-family: Arial; background:#f4f4f4; text-align:center; padding:40px;}
+.container { background:white; padding:30px; border-radius:8px; max-width:500px; margin:auto; box-shadow:0 2px 12px rgba(0,0,0,0.1);}
+input { width:90%; padding:10px; margin:10px 0; border-radius:4px; border:1px solid #ccc;}
+button { padding:10px 20px; border:none; border-radius:4px; cursor:pointer; background:#1a73e8; color:white; font-weight:bold;}
+button:hover{background:#1669c1;}
+ul { list-style:none; padding:0; text-align:left;}
+li { border-bottom:1px solid #ddd; padding:10px; cursor:pointer;}
+li:hover{background:#f0f0f0;}
+.message { background:#f9f9f9; padding:15px; margin-top:10px; border-radius:6px; text-align:left;}
+</style>
 </head>
-<body class="task-login action-none">
-	
-		<div id="layout">
-	
+<body>
+<div class="container">
+<h1>Vercel Mail</h1>
+<button id="genEmail">Generate Email</button>
+<p id="emailDisplay"></p>
+<button id="checkInbox" style="display:none;">Check Inbox</button>
 
-
-<h1 class="voice">SmurfVilla x ZST Login</h1>
-
-<div id="layout-content" class="selected no-navbar" role="main">
-	<img src="https://smurfvilla.zst.email/logo.png" id="logo" alt="Logo">
-	<form id="login-form" name="login-form" method="post" class="propform" action="/?_task=login">
-<input type="hidden" name="_token" value="w15ye2cE8XLjBFGOQMm8njCTN6zKdWnl">
-	<input type="hidden" name="_task" value="login"><input type="hidden" name="_action" value="login"><input type="hidden" name="_timezone" id="rcmlogintz" value="_default_"><input type="hidden" name="_url" id="rcmloginurl" value=""><table><tbody><tr><td class="title"><label for="rcmloginuser">Username</label></td><td class="input"><input name="_user" id="rcmloginuser" required size="40" class="form-control" autocapitalize="off" autocomplete="off" value="" type="text"></td></tr><tr><td class="title"><label for="rcmloginpwd">Password</label></td><td class="input"><input name="_pass" id="rcmloginpwd" required size="40" class="form-control" autocapitalize="off" autocomplete="off" type="password"></td></tr></tbody></table><p class="formbuttons"><button type="submit" id="rcmloginsubmit" class="button mainaction submit">Login</button></p>
-		<div id="login-footer" role="contentinfo">
-			SmurfVilla x ZST
-			
-			
-				&nbsp;&bull;&nbsp; <a href="/cdn-cgi/l/email-protection#2b58465e594d5d4247474a1c1b6b4c464a424705484446" target="_blank" class="support-link">Get support</a>
-			
-			
-		</div>
-	</form>
+<ul id="messages"></ul>
+<div class="message" id="msgContent" style="display:none;"></div>
 </div>
 
-<noscript>
-	<p class="noscriptwarning">Warning: This webmail service requires Javascript! In order to use it please enable Javascript in your browser's settings.</p>
-</noscript>
+<script>
+let email="";
+let login="";
+let domain="";
 
+document.getElementById("genEmail").onclick = async ()=>{
+    const r=await fetch("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1");
+    const data=await r.json();
+    email=data[0];
+    [login,domain]=email.split("@");
+    document.getElementById("emailDisplay").innerText=email;
+    document.getElementById("checkInbox").style.display="inline-block";
+    document.getElementById("messages").innerHTML="";
+    document.getElementById("msgContent").style.display="none";
+};
 
-</div>
+document.getElementById("checkInbox").onclick = async ()=>{
+    if(!email) return;
+    const r=await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
+    const data=await r.json();
+    const ul=document.getElementById("messages");
+    ul.innerHTML="";
+    data.forEach(msg=>{
+        const li=document.createElement("li");
+        li.innerText=msg.from+" — "+msg.subject;
+        li.onclick=()=>readMessage(msg.id);
+        ul.appendChild(li);
+    });
+};
 
-<a href="/cdn-cgi/l/email-protection#27544a525541514e4b4b46101767404a464e4b0944484a" target="_blank" id="supportlink" class="hidden">Get support</a>
-
-
-
-<div id="messagestack"></div>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="6afdf79fe93c4491c91cdcaf-text/javascript">
-$(function() {
-rcmail.init();
-});
+async function readMessage(id){
+    const r=await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
+    const data=await r.json();
+    const div=document.getElementById("msgContent");
+    div.innerHTML="<strong>From:</strong> "+data.from+"<br><strong>Subject:</strong> "+data.subject+"<br><p>"+(data.textBody||data.htmlBody)+"</p>";
+    div.style.display="block";
+}
 </script>
-
-
-
-<script src="skins/elastic/deps/bootstrap.bundle.min.js?s=1725175902" type="6afdf79fe93c4491c91cdcaf-text/javascript"></script>
-<script src="skins/elastic/ui.min.js?s=1725175896" type="6afdf79fe93c4491c91cdcaf-text/javascript"></script>
-
-<script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="6afdf79fe93c4491c91cdcaf-|49" defer></script></body>
+</body>
 </html>
