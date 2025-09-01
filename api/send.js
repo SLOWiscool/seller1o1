@@ -2,6 +2,15 @@ export default async function handler(req,res){
   if(req.method!=="POST") return res.status(405).send("Only POST allowed");
   const {action}=req.body;
 
+  async function safeJson(resp){
+    try {
+      const text = await resp.text();
+      return text ? JSON.parse(text) : {};
+    } catch(e){
+      return {error:"Invalid JSON from API"};
+    }
+  }
+
   try{
     if(action==="create-random"){
       // 1. Get random domain
@@ -20,13 +29,7 @@ export default async function handler(req,res){
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({address,password})
       });
-
-      let account;
-      try {
-        account=await r.json();
-      } catch(e){
-        return res.status(500).json({error:"Failed to parse account creation response"});
-      }
+      const account = await safeJson(r);
 
       if(account.id){
         // 4. Login
@@ -35,20 +38,13 @@ export default async function handler(req,res){
           headers:{"Content-Type":"application/json"},
           body:JSON.stringify({address,password})
         });
-
-        let token;
-        try{
-          token=await l.json();
-        }catch(e){
-          return res.status(500).json({error:"Failed to parse login response"});
-        }
+        const token = await safeJson(l);
 
         if(token.token){
           return res.json({token:token.token,email:address});
         } else {
           return res.status(500).json({error:"Login failed", details:token});
         }
-
       } else {
         return res.status(500).json({error:"Account creation failed", details:account});
       }
