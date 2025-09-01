@@ -12,7 +12,6 @@ export default async function handler(req,res){
       // 2. Generate random username
       const username="user"+Math.floor(Math.random()*100000);
       const password="pass1234";
-
       const address=username+"@"+domain;
 
       // 3. Create account
@@ -21,7 +20,14 @@ export default async function handler(req,res){
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({address,password})
       });
-      const account=await r.json();
+
+      let account;
+      try {
+        account=await r.json();
+      } catch(e){
+        return res.status(500).json({error:"Failed to parse account creation response"});
+      }
+
       if(account.id){
         // 4. Login
         const l=await fetch("https://api.mail.tm/token",{
@@ -29,10 +35,22 @@ export default async function handler(req,res){
           headers:{"Content-Type":"application/json"},
           body:JSON.stringify({address,password})
         });
-        const token=await l.json();
-        return res.json({token:token.token,email:address});
+
+        let token;
+        try{
+          token=await l.json();
+        }catch(e){
+          return res.status(500).json({error:"Failed to parse login response"});
+        }
+
+        if(token.token){
+          return res.json({token:token.token,email:address});
+        } else {
+          return res.status(500).json({error:"Login failed", details:token});
+        }
+
       } else {
-        return res.json(account);
+        return res.status(500).json({error:"Account creation failed", details:account});
       }
     }
 
