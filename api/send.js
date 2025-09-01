@@ -1,8 +1,9 @@
-// /api/send.js
 import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   const { from, password, to, subject, text } = req.body;
 
@@ -11,25 +12,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Configure SMTP transport
+    // Create SMTP transporter
     let transporter = nodemailer.createTransport({
-      host: "smtp.mail.tm",      // Mail.tm SMTP host
-      port: 587,                 // SMTP port
-      secure: false,             // true for 465, false for 587
-      auth: { user: from, pass: password }
+      host: "smtp.mail.tm",
+      port: 587,
+      secure: false,
+      auth: { user: from, pass: password },
     });
 
     // Send email
     let info = await transporter.sendMail({
-      from, 
-      to, 
+      from,
+      to,
       subject: subject || "(no subject)",
-      text
+      text,
     });
 
+    // Return success
     res.status(200).json({ success: true, messageId: info.messageId });
+
   } catch (err) {
-    // Return full error
+    // Always return JSON with full error details
     res.status(500).json({ error: err.toString() });
   }
 }
