@@ -1,44 +1,40 @@
-import fetch from "node-fetch";
+async function sendEmail() {
+  const to = document.getElementById("toAddress").value.trim();
+  const subject = document.getElementById("emailSubject").value.trim();
+  const text = document.getElementById("emailBody").value.trim();
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ success: false, error: "Method not allowed" });
-  }
-
-  const { token, from, to, subject, text } = req.body;
-  if (!token || !from || !to || !text) {
-    return res.status(400).json({ success: false, error: "Missing required fields" });
+  if (!to || !text) {
+    document.getElementById("sendMessage").innerText = "Fill all required fields";
+    return;
   }
 
   try {
-    const response = await fetch("https://api.mail.tm/messages", {
+    const response = await fetch("/api/send", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        from: { address: from },
-        to: { address: to },
-        subject: subject || "(no subject)",
-        text
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, from: account.address, to, subject, text })
     });
 
-    const raw = await response.text(); // read as text first
-
+    // Try parsing JSON safely
+    let data;
+    const raw = await response.text();
     try {
-      const data = JSON.parse(raw); // try parsing JSON
-      res.status(response.ok ? 200 : response.status).json({ success: response.ok, data });
-    } catch {
-      // Mail.tm returned HTML or invalid JSON — return friendly JSON
-      res.status(500).json({
-        success: false,
-        error: "Mail.tm returned invalid response. Message not sent.",
-        rawHtml: raw // optional
-      });
+      data = JSON.parse(raw);
+    } catch (err) {
+      // Mail.tm returned HTML or invalid JSON
+      document.getElementById("sendMessage").innerText = "Full error response:\n" + raw;
+      return;
+    }
+
+    if (data.success) {
+      document.getElementById("sendMessage").innerText = "Email sent successfully!";
+      document.getElementById("toAddress").value = "";
+      document.getElementById("emailSubject").value = "";
+      document.getElementById("emailBody").value = "";
+    } else {
+      document.getElementById("sendMessage").innerText = "Error sending email:\n" + JSON.stringify(data);
     }
   } catch (err) {
-    res.status(500).json({ success: false, error: "Internal server error" });
+    document.getElementById("sendMessage").innerText = "Network or server error:\n" + err;
   }
 }
