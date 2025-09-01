@@ -1,39 +1,43 @@
-async function sendEmail() {
-  const to = document.getElementById("toAddress").value.trim();
-  const subject = document.getElementById("emailSubject").value.trim();
-  const text = document.getElementById("emailBody").value.trim();
+import fetch from "node-fetch";
 
-  if (!to || !text) {
-    document.getElementById("sendMessage").innerText = "Fill all required fields";
-    return;
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const { token, from, to, subject, text } = req.body;
+  if (!token || !from || !to || !text) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
-    const response = await fetch("/api/send", {
+    const response = await fetch("https://api.mail.tm/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, from: account.address, to, subject, text })
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        from: { address: from, name: "TempMail User" },
+        to: [{ address: to }],
+        subject: subject || "(no subject)",
+        text
+      })
     });
 
-    const rawResponse = await response.text(); // Always read as text first
+    // Read raw text first
+    const rawResponse = await response.text();
 
+    // Try parsing JSON safely
     try {
-      // Attempt to parse JSON
       const data = JSON.parse(rawResponse);
-      if (data.success) {
-        document.getElementById("sendMessage").innerText = "Email sent successfully!";
-        document.getElementById("toAddress").value = "";
-        document.getElementById("emailSubject").value = "";
-        document.getElementById("emailBody").value = "";
-      } else {
-        document.getElementById("sendMessage").innerText = "Error sending email (JSON response):\n" + JSON.stringify(data, null, 2);
-      }
+      res.status(200).json(data);
     } catch (err) {
-      // Failed to parse JSON → show full raw response
-      document.getElementById("sendMessage").innerText = "Mail.tm returned a non-JSON response:\n" + rawResponse;
+      // Mail.tm returned HTML or invalid JSON
+      res.status(500).json({ error: "Mail.tm returned non-JSON response", raw: rawResponse });
     }
+
   } catch (err) {
-    // Network/server errors
-    document.getElementById("sendMessage").innerText = "Network or server error:\n" + err.toString();
+    res.status(500).json({ error: "Fetch failed", details: err.toString() });
   }
 }
