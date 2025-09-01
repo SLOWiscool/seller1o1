@@ -1,11 +1,14 @@
 import fetch from "node-fetch";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false, error: "Method not allowed" });
+  }
 
   const { token, from, to, subject, text } = req.body;
-  if (!token || !from || !to || !text) 
-    return res.status(400).json({ error: "Missing required fields" });
+  if (!token || !from || !to || !text) {
+    return res.status(400).json({ success: false, error: "Missing required fields" });
+  }
 
   try {
     const response = await fetch("https://api.mail.tm/messages", {
@@ -26,14 +29,16 @@ export default async function handler(req, res) {
 
     try {
       const data = JSON.parse(raw);
-      if (response.ok) return res.status(200).json(data);
-      return res.status(response.status).json({ error: data });
-    } catch (e) {
-      // Mail.tm returned HTML or invalid JSON
-      return res.status(response.status).json({ error: "Mail.tm returned non-JSON response", raw });
+      return res.status(response.ok ? 200 : response.status).json({ success: response.ok, data });
+    } catch (err) {
+      // Mail.tm returned HTML or invalid JSON — return friendly JSON
+      return res.status(500).json({
+        success: false,
+        error: "Mail.tm returned invalid response. Message not sent.",
+        rawHtml: raw // optional: remove if you don't want raw HTML
+      });
     }
-
   } catch (err) {
-    return res.status(500).json({ error: err.toString() });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
