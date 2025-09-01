@@ -29,21 +29,25 @@ let jwt="", currentEmail="";
 
 async function createRandomAccount(){
   document.getElementById("status-msg").innerText="Creating account...";
-  const res=await fetch("/api/send.js",{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:"create-random"})
-  });
-  const data=await res.json();
-  if(data.token){
-    jwt=data.token;
-    currentEmail=data.email;
-    document.getElementById("email-display").innerText="Logged in as: "+data.email;
-    document.getElementById("dashboard").classList.remove("hidden");
-    document.getElementById("login-section").classList.add("hidden");
-    document.getElementById("status-msg").innerText="Account created and logged in!";
-  } else {
-    document.getElementById("status-msg").innerText="Failed: "+JSON.stringify(data);
+  try{
+    const res=await fetch("/api/send.js",{
+      method:"POST",
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:"create-random"})
+    });
+    const data=await res.json();
+    if(data.token){
+      jwt=data.token;
+      currentEmail=data.email;
+      document.getElementById("email-display").innerText="Logged in as: "+data.email;
+      document.getElementById("dashboard").classList.remove("hidden");
+      document.getElementById("login-section").classList.add("hidden");
+      document.getElementById("status-msg").innerText="Account created and logged in!";
+    } else {
+      document.getElementById("status-msg").innerText="Failed: "+JSON.stringify(data);
+    }
+  } catch(err){
+    document.getElementById("status-msg").innerText="Error: "+err.message;
   }
 }
 
