@@ -1,87 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Temp Mail</title>
-<style>
-body { font-family: Arial; background:#f4f4f4; text-align:center; padding:40px;}
-.container { background:white; padding:30px; border-radius:8px; max-width:500px; margin:auto; box-shadow:0 2px 12px rgba(0,0,0,0.1);}
-input, button { padding:10px; margin:10px 0; border-radius:4px; border:1px solid #ccc;}
-button { cursor:pointer; background:#1a73e8; color:white; border:none; font-weight:bold;}
-button:hover{background:#1669c1;}
-ul { list-style:none; padding:0; text-align:left;}
-li { border-bottom:1px solid #ddd; padding:10px; cursor:pointer;}
-li:hover{background:#f0f0f0;}
-.message { background:#f9f9f9; padding:15px; margin-top:10px; border-radius:6px; text-align:left;}
-</style>
+  <meta charset="UTF-8">
+  <title>Disposable Email Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin-top: 20px;
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    #emailBox {
+      margin-top: 20px;
+      background: #1e293b;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 18px;
+      word-break: break-all;
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-<h1>Temp Mail</h1>
-<button id="genEmail">Generate Email</button>
-<p id="emailDisplay"></p>
-<button id="checkInbox" style="display:none;">Check Inbox</button>
+  <h1>Disposable Email Generator</h1>
+  <button id="generateBtn">Generate Email</button>
+  <div id="emailBox"></div>
 
-<ul id="messages"></ul>
-<div class="message" id="msgContent" style="display:none;"></div>
-</div>
+  <script>
+    const btn = document.getElementById("generateBtn");
+    const emailBox = document.getElementById("emailBox");
 
-<script>
-let email="";
-let token="";
+    async function generateEmail() {
+      try {
+        // get available domains
+        let domainRes = await fetch("https://api.mail.tm/domains");
+        let domainData = await domainRes.json();
+        let domain = domainData['hydra:member'][0].domain;
 
-async function generateEmail(){
-    const r = await fetch("https://api.mail.tm/accounts", {
-        method:"POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: `user${Math.floor(Math.random()*10000)}@mail.tm`, password:"password123!" })
-    });
-    const data = await r.json();
-    email = data.address;
-    document.getElementById("emailDisplay").innerText = email;
+        // create random email
+        let randomUser = Math.random().toString(36).substring(2, 10);
+        let email = randomUser + "@" + domain;
 
-    // login to get token
-    const loginRes = await fetch("https://api.mail.tm/token", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ address: email, password:"password123!" })
-    });
-    const loginData = await loginRes.json();
-    token = loginData.token;
+        // create account
+        let accRes = await fetch("https://api.mail.tm/accounts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: email,
+            password: "password123"
+          })
+        });
 
-    document.getElementById("checkInbox").style.display="inline-block";
-    document.getElementById("messages").innerHTML="";
-    document.getElementById("msgContent").style.display="none";
-}
+        if (!accRes.ok) {
+          throw new Error("Failed to create account");
+        }
 
-async function fetchInbox(){
-    const r = await fetch("https://api.mail.tm/messages", {
-        headers:{ "Authorization": `Bearer ${token}` }
-    });
-    const data = await r.json();
-    const ul = document.getElementById("messages");
-    ul.innerHTML="";
-    data["hydra:member"].forEach(msg=>{
-        const li = document.createElement("li");
-        li.innerText = msg.from.address + " — " + msg.subject;
-        li.onclick = ()=>readMessage(msg.id);
-        ul.appendChild(li);
-    });
-}
+        emailBox.innerHTML = `<b>Email:</b> ${email}<br><b>Password:</b> password123`;
+      } catch (e) {
+        emailBox.textContent = "Error: " + e.message;
+      }
+    }
 
-async function readMessage(id){
-    const r = await fetch(`https://api.mail.tm/messages/${id}`, {
-        headers:{ "Authorization": `Bearer ${token}` }
-    });
-    const data = await r.json();
-    const div = document.getElementById("msgContent");
-    div.innerHTML = `<strong>From:</strong> ${data.from.address}<br><strong>Subject:</strong> ${data.subject}<br><p>${data.text}</p>`;
-    div.style.display="block";
-}
-
-document.getElementById("genEmail").onclick = generateEmail;
-document.getElementById("checkInbox").onclick = fetchInbox;
-</script>
+    btn.onclick = generateEmail;
+  </script>
 </body>
 </html>
