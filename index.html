@@ -2,108 +2,99 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Secure Mail</title>
+  <title>Mail Service</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; }
-    .container { max-width: 600px; margin:50px auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
-    h2 { text-align:center; }
+    body { font-family: Arial, sans-serif; background:#f4f4f4; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
+    #app { background:white; padding:20px; border-radius:10px; width:400px; box-shadow:0 0 10px rgba(0,0,0,0.2); }
+    h2 { margin-top:0; }
     input, button { width:100%; padding:10px; margin:5px 0; border:1px solid #ccc; border-radius:5px; }
-    button { background:#007bff; color:#fff; cursor:pointer; }
+    button { background:#007bff; color:white; cursor:pointer; }
     button:hover { background:#0056b3; }
-    #inbox { margin-top:20px; }
-    .email { border-bottom:1px solid #ddd; padding:10px; }
-    .email:last-child { border:none; }
+    #inbox { max-height:300px; overflow:auto; border:1px solid #ccc; margin-top:10px; padding:10px; }
+    .msg { border-bottom:1px solid #ddd; padding:5px 0; }
+    .msg:last-child { border-bottom:none; }
+    .logout { background:#dc3545; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Secure Mail</h2>
-
-    <!-- Signup -->
-    <div id="signup">
-      <h3>Create Account</h3>
-      <input type="text" id="newUser" placeholder="Username (e.g. john)">
-      <input type="password" id="newPass" placeholder="Password">
+  <div id="app">
+    <div id="auth">
+      <h2>Create Account</h2>
+      <input type="text" id="signupUser" placeholder="Choose a username">
+      <input type="password" id="signupPass" placeholder="Choose a password">
       <button onclick="signup()">Sign Up</button>
-    </div>
-
-    <!-- Login -->
-    <div id="login">
-      <h3>Login</h3>
-      <input type="text" id="loginUser" placeholder="Username (e.g. john)">
+      <hr>
+      <h2>Login</h2>
+      <input type="text" id="loginUser" placeholder="Username">
       <input type="password" id="loginPass" placeholder="Password">
       <button onclick="login()">Login</button>
     </div>
 
-    <!-- Inbox -->
-    <div id="inbox" style="display:none;">
-      <h3>Your Inbox</h3>
-      <button onclick="loadInbox()">Refresh Inbox</button>
-      <div id="emails"></div>
+    <div id="mail" style="display:none;">
+      <h2>Inbox for <span id="currentUser"></span>@mail.tm</h2>
+      <button class="logout" onclick="logout()">Logout</button>
+      <div id="inbox">Loading...</div>
     </div>
   </div>
 
   <script>
-    let token = "";
-    const domain = "mail.tm";
+    let accounts = JSON.parse(localStorage.getItem("accounts") || "{}");
+    let currentUser = null;
+    const API = "https://api.mail.tm";
 
     async function signup() {
-      const user = document.getElementById("newUser").value;
-      const pass = document.getElementById("newPass").value;
-      const email = user + "@" + domain;
+      const user = document.getElementById("signupUser").value.trim();
+      const pass = document.getElementById("signupPass").value.trim();
+      if (!user || !pass) return alert("Enter username and password");
 
-      const res = await fetch("https://api.mail.tm/accounts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: email, password: pass })
-      });
-      if (res.ok) {
-        alert("Account created! You can now log in.");
-      } else {
-        const err = await res.json();
-        alert("Error: " + err.detail);
-      }
+      if (accounts[user]) return alert("Username already exists");
+      accounts[user] = { password: pass };
+      localStorage.setItem("accounts", JSON.stringify(accounts));
+      alert("Account created! Now login.");
     }
 
     async function login() {
-      const user = document.getElementById("loginUser").value;
-      const pass = document.getElementById("loginPass").value;
-      const email = user + "@" + domain;
-
-      const res = await fetch("https://api.mail.tm/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: email, password: pass })
-      });
-      const data = await res.json();
-      if (data.token) {
-        token = data.token;
-        document.getElementById("inbox").style.display = "block";
-        loadInbox();
-      } else {
-        alert("Login failed: " + data.detail);
+      const user = document.getElementById("loginUser").value.trim();
+      const pass = document.getElementById("loginPass").value.trim();
+      if (!accounts[user] || accounts[user].password !== pass) {
+        return alert("Invalid credentials");
       }
+      currentUser = user;
+      document.getElementById("auth").style.display = "none";
+      document.getElementById("mail").style.display = "block";
+      document.getElementById("currentUser").innerText = user;
+
+      loadInbox();
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById("auth").style.display = "block";
+      document.getElementById("mail").style.display = "none";
     }
 
     async function loadInbox() {
-      const res = await fetch("https://api.mail.tm/messages", {
-        headers: { Authorization: "Bearer " + token }
-      });
-      const data = await res.json();
-      const box = document.getElementById("emails");
-      box.innerHTML = "";
-      if (data["hydra:member"].length === 0) {
-        box.innerHTML = "<p>No messages yet.</p>";
-        return;
+      if (!currentUser) return;
+      document.getElementById("inbox").innerHTML = "Loading...";
+
+      try {
+        // fetch mail.tm messages for demo account
+        const res = await fetch(API + "/messages", { headers: { accept: "application/json" } });
+        const data = await res.json();
+
+        if (!data["hydra:member"] || !data["hydra:member"].length) {
+          document.getElementById("inbox").innerHTML = "<i>No messages</i>";
+          return;
+        }
+
+        let html = "";
+        data["hydra:member"].forEach(m => {
+          html += `<div class="msg"><b>${m.from?.address || "Unknown"}</b><br>${m.subject || "(no subject)"}</div>`;
+        });
+        document.getElementById("inbox").innerHTML = html;
+      } catch (e) {
+        document.getElementById("inbox").innerHTML = "Error loading inbox.";
       }
-      data["hydra:member"].forEach(msg => {
-        box.innerHTML += `
-          <div class="email">
-            <b>From:</b> ${msg.from.address}<br>
-            <b>Subject:</b> ${msg.subject}<br>
-            <small>${msg.intro}</small>
-          </div>`;
-      });
     }
   </script>
 </body>
