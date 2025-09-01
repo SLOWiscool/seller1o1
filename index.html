@@ -55,4 +55,147 @@ button:hover {background:#1669c1;}
 <input type="text" id="emailSubject" placeholder="Subject">
 <textarea id="emailBody" placeholder="Message"></textarea>
 <button onclick="sendEmail()">Send</button>
-<div id="sendMessage"></div
+<div id="sendMessage"></div>
+<h3>Inbox</h3>
+<div id="messages"></div>
+</div>
+<div class="inbox">
+<h2>Email Content</h2>
+<div id="emailContent">Click a message to view its content</div>
+<div id="replyForwardButtons" style="display:none;">
+<button onclick="replyEmail()">Reply</button>
+<button onclick="forwardEmail()">Forward</button>
+</div>
+</div>
+</div>
+
+<script>
+let token = "";
+let account = {};
+let selectedMessage = null;
+
+// Forms toggle
+function showLogin(){document.getElementById("signupBox").style.display="none";document.getElementById("loginBox").style.display="block";}
+function showSignup(){document.getElementById("loginBox").style.display="none";document.getElementById("signupBox").style.display="block";}
+
+// Create Account
+async function createAccount(){
+  let username=document.getElementById("signupUsername").value.trim().replace(/[^a-z0-9._-]/gi,'').toLowerCase();
+  let password=document.getElementById("signupPassword").value.trim();
+  if(!username){document.getElementById("signupMessage").innerText="Invalid username."; return;}
+  if(password.length<8){password="Aa123456!";}
+  
+  const res=await fetch("https://api.mail.tm/domains");
+  const data=await res.json();
+  const domain=data["hydra:member"][Math.floor(Math.random()*data["hydra:member"].length)].domain;
+  let email=`${username}@${domain}`;
+  account={address:email,password};
+
+  let r=await fetch("https://api.mail.tm/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
+  if(r.ok){document.getElementById("signupMessage").innerText=`Account created: ${email}. Waiting for verification...`;await waitForVerification();}
+  else{let err=await r.json();document.getElementById("signupMessage").innerText="Error: "+JSON.stringify(err);}
+}
+
+// Wait for token
+async function waitForVerification(){
+  let verified=false;
+  while(!verified){
+    await new Promise(r=>setTimeout(r,3000));
+    let r=await fetch("https://api.mail.tm/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
+    let data=await r.json();
+    if(data.token){token=data.token;verified=true;break;}
+  }
+  document.getElementById("signupMessage").innerText="Verified! Logging in...";
+  loginAfterSignup();
+}
+
+function loginAfterSignup(){
+  document.getElementById("signupBox").style.display="none";
+  document.getElementById("mailApp").style.display="flex";
+  document.getElementById("userEmail").innerText=account.address;
+  fetchMessages();
+  setInterval(fetchMessages,5000);
+}
+
+// Manual login
+async function login(){
+  let username=document.getElementById("loginUsername").value.trim().toLowerCase();
+  let password=document.getElementById("loginPassword").value.trim();
+  account={address:username,password};
+  let r=await fetch("https://api.mail.tm/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
+  let data=await r.json();
+  if(data.token){token=data.token;document.getElementById("loginBox").style.display="none";document.getElementById("mailApp").style.display="flex";document.getElementById("userEmail").innerText=account.address;fetchMessages();setInterval(fetchMessages,5000);}
+  else{document.getElementById("loginMessage").innerText="Login failed";}
+}
+
+// Fetch inbox
+async function fetchMessages(){
+  let r=await fetch("https://api.mail.tm/messages",{headers:{Authorization:"Bearer "+token}});
+  let data=await r.json();
+  const messagesDiv=document.getElementById("messages");
+  messagesDiv.innerHTML="";
+  data["hydra:member"].forEach(msg=>{
+    let div=document.createElement("div");
+    div.className="message";
+    div.innerHTML=`<b>${msg.from.address}</b><br>${msg.subject||"(no subject)"}<br><small>${new Date(msg.createdAt).toLocaleString()}</small>`;
+    div.onclick=()=>showMessage(msg.id);
+    messagesDiv.appendChild(div);
+  });
+}
+
+// Show full email
+async function showMessage(id){
+  let r=await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:"Bearer "+token}});
+  let msg=await r.json();
+  selectedMessage = msg;
+  document.getElementById("emailContent").innerHTML=`<b>From:</b> ${msg.from.address}<br><b>Subject:</b> ${msg.subject||"(no subject)"}<br><hr>${msg.text||msg.html||"(no content)"}`;
+  document.getElementById("replyForwardButtons").style.display="block";
+}
+
+// Send new email
+async function sendEmail(){
+  const to=document.getElementById("toAddress").value.trim();
+  const subject=document.getElementById("emailSubject").value.trim();
+  const text=document.getElementById("emailBody").value.trim();
+  if(!to||!text){document.getElementById("sendMessage").innerText="Fill all required fields";return;}
+  let r=await fetch("https://api.mail.tm/messages",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({from:{address:account.address,name:"TempMail User"},to:[{address:to}],subject,text})});
+  if(r.ok){document.getElementById("sendMessage").innerText="Email sent!";document.getElementById("toAddress").value="";document.getElementById("emailSubject").value="";document.getElementById("emailBody").value="";}
+  else{let err=await r.json();document.getElementById("sendMessage").innerText="Error: "+JSON.stringify(err);}
+}
+
+// Reply to selected message
+async function replyEmail(){
+  if(!selectedMessage){alert("Select a message first"); return;}
+  const text=prompt("Enter reply message:","");
+  if(!text)return;
+  const r=await fetch("https://api.mail.tm/messages",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({
+    from:{address:account.address,name:"TempMail User"},
+    to:[{address:selectedMessage.from.address}],
+    subject:"Re: "+(selectedMessage.subject||""),
+    text,
+    inReplyTo:selectedMessage.id,
+    references:[selectedMessage.id]
+  })});
+  if(r.ok)alert("Reply sent!");
+  else{let err=await r.json();alert("Error: "+JSON.stringify(err));}
+}
+
+// Forward selected message
+async function forwardEmail(){
+  if(!selectedMessage){alert("Select a message first"); return;}
+  const to=prompt("Forward to (required):","");
+  if(!to)return;
+  const subject=prompt("Forward subject (optional):", "Fwd: "+(selectedMessage.subject||""));
+  const text=`Forwarded message:\nFrom: ${selectedMessage.from.address}\nSubject: ${selectedMessage.subject}\n\n${selectedMessage.text||selectedMessage.html||"(no content)"}`;
+  const r=await fetch("https://api.mail.tm/messages",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({
+    from:{address:account.address,name:"TempMail User"},
+    to:[{address:to}],
+    subject,
+    text
+  })});
+  if(r.ok)alert("Forwarded successfully!");
+  else{let err=await r.json();alert("Error: "+JSON.stringify(err));}
+}
+</script>
+</body>
+</html>
