@@ -7,7 +7,7 @@
 body {margin:0;font-family:Arial,sans-serif;background:#f6f8fc;}
 .navbar {background:#fff;padding:12px;border-bottom:1px solid #ddd;font-weight:bold;display:flex;justify-content:space-between;align-items:center;}
 .container {display:flex;height:calc(100vh - 50px);}
-.sidebar {width:300px;background:#fff;border-right:1px solid #ddd;padding:10px;overflow-y:auto;}
+.sidebar {width:320px;background:#fff;border-right:1px solid #ddd;padding:10px;overflow-y:auto;}
 .sidebar h3 {margin:10px 0;font-size:16px;color:#666;}
 .inbox {flex:1;padding:20px;overflow-y:auto;}
 .message {background:#fff;margin-bottom:10px;padding:12px;border-radius:6px;border:1px solid #ddd;cursor:pointer;}
@@ -50,11 +50,13 @@ button:hover {background:#1669c1;}
 <div class="sidebar">
 <h3>Inbox</h3>
 <div id="messages"></div>
-<h3>Send Email</h3>
+<h3>Send / Reply / Forward</h3>
 <input type="text" id="toAddress" placeholder="To">
 <input type="text" id="emailSubject" placeholder="Subject">
 <textarea id="emailBody" placeholder="Message"></textarea>
-<button onclick="sendEmail()">Send Email</button>
+<button onclick="sendEmail()">Send</button>
+<button onclick="replyEmail()">Reply</button>
+<button onclick="forwardEmail()">Forward</button>
 <div id="sendMessage"></div>
 </div>
 <div class="inbox">
@@ -66,6 +68,7 @@ button:hover {background:#1669c1;}
 <script>
 let token = "";
 let account = {};
+let selectedMessage = null;
 
 // Forms toggle
 function showLogin(){document.getElementById("signupBox").style.display="none";document.getElementById("loginBox").style.display="block";}
@@ -77,12 +80,10 @@ async function createAccount(){
   let password=document.getElementById("signupPassword").value.trim();
   if(!username){document.getElementById("signupMessage").innerText="Invalid username."; return;}
   if(password.length<8){password="Aa123456!";}
-
-  // Get random domain
+  
   const res=await fetch("https://api.mail.tm/domains");
   const data=await res.json();
   const domain=data["hydra:member"][Math.floor(Math.random()*data["hydra:member"].length)].domain;
-
   let email=`${username}@${domain}`;
   account={address:email,password};
 
@@ -132,7 +133,7 @@ async function fetchMessages(){
   data["hydra:member"].forEach(msg=>{
     let div=document.createElement("div");
     div.className="message";
-    div.innerHTML=`<b>${msg.from.address}</b><br>${msg.subject||"(no subject)"}`;
+    div.innerHTML=`<b>${msg.from.address}</b><br>${msg.subject||"(no subject)"}<br><small>${new Date(msg.createdAt).toLocaleString()}</small>`;
     div.onclick=()=>showMessage(msg.id);
     messagesDiv.appendChild(div);
   });
@@ -142,10 +143,11 @@ async function fetchMessages(){
 async function showMessage(id){
   let r=await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:"Bearer "+token}});
   let msg=await r.json();
+  selectedMessage = msg; // store selected
   document.getElementById("emailContent").innerHTML=`<b>From:</b> ${msg.from.address}<br><b>Subject:</b> ${msg.subject||"(no subject)"}<br><hr>${msg.text||msg.html||"(no content)"}`;
 }
 
-// Send email
+// Send new email
 async function sendEmail(){
   const to=document.getElementById("toAddress").value.trim();
   const subject=document.getElementById("emailSubject").value.trim();
@@ -153,6 +155,38 @@ async function sendEmail(){
   if(!to||!subject||!text){document.getElementById("sendMessage").innerText="Fill all fields";return;}
   let r=await fetch("https://api.mail.tm/messages",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({from:{address:account.address,name:"TempMail User"},to:[{address:to}],subject,text})});
   if(r.ok){document.getElementById("sendMessage").innerText="Email sent!";document.getElementById("toAddress").value="";document.getElementById("emailSubject").value="";document.getElementById("emailBody").value="";}
+  else{let err=await r.json();document.getElementById("sendMessage").innerText="Error: "+JSON.stringify(err);}
+}
+
+// Reply
+async function replyEmail(){
+  if(!selectedMessage){document.getElementById("sendMessage").innerText="Select a message to reply";return;}
+  const text=document.getElementById("emailBody").value.trim();
+  if(!text){document.getElementById("sendMessage").innerText="Enter reply text";return;}
+  const r=await fetch("https://api.mail.tm/messages",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({
+    from:{address:account.address,name:"TempMail User"},
+    to:[{address:selectedMessage.from.address}],
+    subject:"Re: "+(selectedMessage.subject||""),
+    text,
+    inReplyTo:selectedMessage.id,
+    references:[selectedMessage.id]
+  })});
+  if(r.ok){document.getElementById("sendMessage").innerText="Replied successfully";document.getElementById("emailBody").value="";}
+  else{let err=await r.json();document.getElementById("sendMessage").innerText="Error: "+JSON.stringify(err);}
+}
+
+// Forward
+async function forwardEmail(){
+  if(!selectedMessage){document.getElementById("sendMessage").innerText="Select a message to forward";return;}
+  const to=document.getElementById("toAddress").value.trim();
+  if(!to){document.getElementById("sendMessage").innerText="Enter recipient";return;}
+  const r=await fetch("https://api.mail.tm/messages",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({
+    from:{address:account.address,name:"TempMail User"},
+    to:[{address:to}],
+    subject:"Fwd: "+(selectedMessage.subject||""),
+    text:`Forwarded message:\nFrom: ${selectedMessage.from.address}\nSubject: ${selectedMessage.subject}\n\n${selectedMessage.text||selectedMessage.html||"(no content)"}`
+  })});
+  if(r.ok){document.getElementById("sendMessage").innerText="Forwarded successfully";document.getElementById("toAddress").value="";document.getElementById("emailBody").value="";}
   else{let err=await r.json();document.getElementById("sendMessage").innerText="Error: "+JSON.stringify(err);}
 }
 </script>
