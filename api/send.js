@@ -16,15 +16,23 @@ export default async function handler(req,res){
 
   try{
     if(action==="create-random"){
-      // 1. Hardcoded known working domain
-      const domain = "powerscrews.com";
+      // 1. Get all valid domains
+      const d = await fetch("https://api.mail.tm/domains");
+      const domainsData = await safeParse(d);
+      const domains = domainsData["hydra:member"];
+      if(!domains || domains.length===0){
+        return res.status(500).json({error:"No valid domains from mail.tm"});
+      }
 
-      // 2. Generate random username
+      // 2. Pick random domain
+      const domain = domains[Math.floor(Math.random()*domains.length)].domain;
+
+      // 3. Random username & password
       const username="user"+Math.floor(Math.random()*100000);
       const password="pass1234";
       const address=username+"@"+domain;
 
-      // 3. Create account
+      // 4. Create account
       const r=await fetch("https://api.mail.tm/accounts",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
@@ -36,7 +44,7 @@ export default async function handler(req,res){
         return res.status(500).json({error:"Account creation failed", details:account});
       }
 
-      // 4. Login
+      // 5. Login
       const l=await fetch("https://api.mail.tm/token",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
