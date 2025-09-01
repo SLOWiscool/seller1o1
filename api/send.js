@@ -1,206 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>TempMail Gmail Clone</title>
-<style>
-body {margin:0;font-family:Arial,sans-serif;background:#f6f8fc;}
-.navbar {background:#fff;padding:12px;border-bottom:1px solid #ddd;font-weight:bold;display:flex;justify-content:space-between;align-items:center;}
-.container {display:flex;height:calc(100vh - 50px);}
-.sidebar {width:320px;background:#fff;border-right:1px solid #ddd;padding:10px;overflow-y:auto;}
-.sidebar h3 {margin:10px 0;font-size:16px;color:#666;}
-.inbox {flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;}
-.message {background:#fff;margin-bottom:10px;padding:12px;border-radius:6px;border:1px solid #ddd;cursor:pointer;}
-.message:hover {background:#f0f0f0;}
-.box {width:360px;margin:80px auto;padding:30px;background:#fff;border:1px solid #ddd;border-radius:8px;text-align:center;}
-input, button, textarea {width:90%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;font-size:14px;}
-button {background:#1a73e8;color:white;border:none;cursor:pointer;}
-button:hover {background:#1669c1;}
-#emailContent {background:#fff;padding:12px;border-radius:6px;border:1px solid #ddd;margin-bottom:10px;white-space:pre-wrap;flex:1;overflow-y:auto;}
-#replyForwardButtons {margin-top:10px;}
-#replyForwardButtons button {width:120px;margin-right:10px;}
-</style>
-</head>
-<body>
+import fetch from "node-fetch";
 
-<div class="navbar">
-  <div>TempMail</div>
-  <div id="userEmail" style="font-size:14px;"></div>
-</div>
-
-<!-- Signup -->
-<div class="box" id="signupBox">
-<h2>Create Account</h2>
-<input type="text" id="signupUsername" placeholder="Choose a username">
-<input type="password" id="signupPassword" placeholder="Choose a password">
-<button onclick="createAccount()">Create Account</button>
-<p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
-<div id="signupMessage"></div>
-</div>
-
-<!-- Login -->
-<div class="box" id="loginBox" style="display:none;">
-<h2>Login</h2>
-<input type="text" id="loginUsername" placeholder="Full Email Address">
-<input type="password" id="loginPassword" placeholder="Password">
-<button onclick="login()">Login</button>
-<p>Don’t have an account? <a href="#" onclick="showSignup()">Sign Up</a></p>
-<div id="loginMessage"></div>
-</div>
-
-<!-- Mail App -->
-<div class="container" id="mailApp" style="display:none;">
-  <div class="sidebar">
-    <h3>Send New Email</h3>
-    <input type="text" id="toAddress" placeholder="To">
-    <input type="text" id="emailSubject" placeholder="Subject">
-    <textarea id="emailBody" placeholder="Message"></textarea>
-    <button onclick="sendEmail()">Send</button>
-    <div id="sendMessage"></div>
-    <h3>Inbox</h3>
-    <div id="messages"></div>
-  </div>
-  <div class="inbox">
-    <h2>Email Content</h2>
-    <div id="emailContent">Click a message to view its content</div>
-    <div id="replyForwardButtons" style="display:none;">
-      <button onclick="replyEmail()">Reply</button>
-      <button onclick="forwardEmail()">Forward</button>
-    </div>
-  </div>
-</div>
-
-<script>
-let token = "";
-let account = {};
-let selectedMessage = null;
-const backendURL = "/api/send";
-
-function showLogin(){document.getElementById("signupBox").style.display="none";document.getElementById("loginBox").style.display="block";}
-function showSignup(){document.getElementById("loginBox").style.display="none";document.getElementById("signupBox").style.display="block";}
-
-async function createAccount(){
-  let username=document.getElementById("signupUsername").value.trim().replace(/[^a-z0-9._-]/gi,'').toLowerCase();
-  let password=document.getElementById("signupPassword").value.trim();
-  if(!username){document.getElementById("signupMessage").innerText="Invalid username."; return;}
-  if(password.length<8){password="Aa123456!";}
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   
+  const { token, from, to, subject, text } = req.body;
+  if (!token || !from || !to || !text) 
+    return res.status(400).json({ error: "Missing required fields" });
+
   try {
-    const res=await fetch("https://api.mail.tm/domains");
-    const data=await res.json();
-    const domain=data["hydra:member"][Math.floor(Math.random()*data["hydra:member"].length)].domain;
-    let email=`${username}@${domain}`;
-    account={address:email,password};
-    
-    const r=await fetch("https://api.mail.tm/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-    if(r.ok){document.getElementById("signupMessage").innerText=`Account created: ${email}. Waiting for verification...`;await waitForVerification();}
-    else{let err=await r.json();document.getElementById("signupMessage").innerText="Error: "+JSON.stringify(err);}
-  } catch(e){
-    document.getElementById("signupMessage").innerText="Error fetching domains or creating account: "+e;
-  }
-}
-
-async function waitForVerification(){
-  let verified=false;
-  while(!verified){
-    await new Promise(r=>setTimeout(r,3000));
-    let r=await fetch("https://api.mail.tm/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-    let data;
-    try {data=await r.json();} catch(e){ continue; }
-    if(data.token){token=data.token;verified=true;break;}
-  }
-  document.getElementById("signupMessage").innerText="Verified! Logging in...";
-  loginAfterSignup();
-}
-
-function loginAfterSignup(){
-  document.getElementById("signupBox").style.display="none";
-  document.getElementById("mailApp").style.display="flex";
-  document.getElementById("userEmail").innerText=account.address;
-  fetchMessages();
-  setInterval(fetchMessages,5000);
-}
-
-async function login(){
-  let username=document.getElementById("loginUsername").value.trim().toLowerCase();
-  let password=document.getElementById("loginPassword").value.trim();
-  account={address:username,password};
-  try{
-    let r=await fetch("https://api.mail.tm/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-    const raw = await r.text();
-    let data;
-    try { data = JSON.parse(raw); } catch(e){ document.getElementById("loginMessage").innerText="Full server response:\n"+raw; return; }
-    if(data.token){token=data.token;document.getElementById("loginBox").style.display="none";document.getElementById("mailApp").style.display="flex";document.getElementById("userEmail").innerText=account.address;fetchMessages();setInterval(fetchMessages,5000);}
-    else{document.getElementById("loginMessage").innerText="Login failed: "+JSON.stringify(data);}
-  } catch(e){
-    document.getElementById("loginMessage").innerText="Login fetch error: "+e;
-  }
-}
-
-async function fetchMessages(){
-  try{
-    let r=await fetch("https://api.mail.tm/messages",{headers:{Authorization:"Bearer "+token}});
-    let data=await r.json();
-    const messagesDiv=document.getElementById("messages");
-    messagesDiv.innerHTML="";
-    data["hydra:member"].forEach(msg=>{
-      let div=document.createElement("div");
-      div.className="message";
-      div.innerHTML=`<b>${msg.from.address}</b><br>${msg.subject||"(no subject)"}<br><small>${new Date(msg.createdAt).toLocaleString()}</small>`;
-      div.onclick=()=>showMessage(msg.id);
-      messagesDiv.appendChild(div);
+    const r = await fetch("https://api.mail.tm/messages", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        from: { address: from, name: "TempMail User" },
+        to: [{ address: to }],
+        subject,
+        text
+      })
     });
-  } catch(e){console.log("Fetch messages error:",e);}
-}
 
-async function showMessage(id){
-  try{
-    let r=await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:"Bearer "+token}});
-    let msg=await r.json();
-    selectedMessage=msg;
-    document.getElementById("emailContent").innerHTML=`<b>From:</b> ${msg.from.address}<br><b>Subject:</b> ${msg.subject||"(no subject)"}<br><hr>${msg.text}`;
-    document.getElementById("replyForwardButtons").style.display="block";
-  } catch(e){console.log("Show message error:",e);}
-}
-
-async function sendEmail(){
-  const to=document.getElementById("toAddress").value.trim();
-  const subject=document.getElementById("emailSubject").value.trim();
-  const text=document.getElementById("emailBody").value.trim();
-  if(!to || !text){document.getElementById("sendMessage").innerText="Fill all required fields"; return;}
-  try{
-    const r=await fetch(backendURL,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({token,from:account.address,to,subject,text})
-    });
-    const raw = await r.text();
+    const textResponse = await r.text();
     let data;
-    try{data=JSON.parse(raw);}catch(e){document.getElementById("sendMessage").innerText="Server returned non-JSON:\n"+raw; return;}
-    if(data.id){
-      document.getElementById("sendMessage").innerText="Email sent!";
-      document.getElementById("toAddress").value="";
-      document.getElementById("emailSubject").value="";
-      document.getElementById("emailBody").value="";
-    } else {
-      document.getElementById("sendMessage").innerText="Error sending:\n"+JSON.stringify(data,null,2);
-    }
-  } catch(e){document.getElementById("sendMessage").innerText="Send fetch error: "+e;}
-}
+    try { data = JSON.parse(textResponse); } 
+    catch(e){ return res.status(500).json({ error: "Non-JSON response", raw:textResponse }); }
 
-function replyEmail(){
-  if(!selectedMessage) return;
-  document.getElementById("toAddress").value=selectedMessage.from.address;
-  document.getElementById("emailSubject").value="Re: "+(selectedMessage.subject||"(no subject)");
-  document.getElementById("emailBody").value="\n\n---- Original message ----\n"+selectedMessage.text;
+    if(r.ok) res.status(200).json(data);
+    else res.status(r.status).json({ error:"Failed to send", details:data });
+  } catch (e) {
+    res.status(500).json({ error: e.toString() });
+  }
 }
-
-function forwardEmail(){
-  if(!selectedMessage) return;
-  document.getElementById("toAddress").value="";
-  document.getElementById("emailSubject").value="Fwd: "+(selectedMessage.subject||"(no subject)");
-  document.getElementById("emailBody").value="\n\n---- Forwarded message ----\nFrom: "+selectedMessage.from.address+"\n"+selectedMessage.text;
-}
-</script>
-</body>
-</html>
