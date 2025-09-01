@@ -25,20 +25,20 @@ export default async function handler(req, res) {
       })
     });
 
-    const raw = await response.text();
+    const raw = await response.text(); // read as text first
 
     try {
-      const data = JSON.parse(raw);
-      return res.status(response.ok ? 200 : response.status).json({ success: response.ok, data });
-    } catch (err) {
+      const data = JSON.parse(raw); // try parsing JSON
+      res.status(response.ok ? 200 : response.status).json({ success: response.ok, data });
+    } catch {
       // Mail.tm returned HTML or invalid JSON — return friendly JSON
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         error: "Mail.tm returned invalid response. Message not sent.",
-        rawHtml: raw // optional: remove if you don't want raw HTML
+        rawHtml: raw // optional
       });
     }
   } catch (err) {
-    return res.status(500).json({ success: false, error: "Internal server error" });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
