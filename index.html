@@ -28,9 +28,9 @@ button:hover {background:#1669c1;}
   <div id="userEmail" style="font-size:14px;"></div>
 </div>
 
-<!-- Signup -->
-<div class="box" id="signupBox">
-<h2>Create Account</h2>
+<!-- Admin Panel / Sign Up -->
+<div class="box" id="adminBox">
+<h2>Admin Panel - Create Account</h2>
 <input type="text" id="signupUsername" placeholder="Choose a username">
 <input type="password" id="signupPassword" placeholder="Choose a password">
 <button onclick="createAccount()">Create Account</button>
@@ -76,28 +76,28 @@ let account = {};
 let selectedMessage = null;
 const backendURL = "/api/send";
 
-function showLogin(){document.getElementById("signupBox").style.display="none";document.getElementById("loginBox").style.display="block";}
-function showSignup(){document.getElementById("loginBox").style.display="none";document.getElementById("signupBox").style.display="block";}
+function showLogin(){document.getElementById("adminBox").style.display="none";document.getElementById("loginBox").style.display="block";}
+function showSignup(){document.getElementById("loginBox").style.display="none";document.getElementById("adminBox").style.display="block";}
 
+// Admin - Create Account
 async function createAccount(){
   let username=document.getElementById("signupUsername").value.trim().replace(/[^a-z0-9._-]/gi,'').toLowerCase();
   let password=document.getElementById("signupPassword").value.trim();
   if(!username){document.getElementById("signupMessage").innerText="Invalid username."; return;}
   if(password.length<8){password="Aa123456!";}
-  
-  try {
+
+  try{
     const res=await fetch("https://api.mail.tm/domains");
     const data=await res.json();
     const domain=data["hydra:member"][Math.floor(Math.random()*data["hydra:member"].length)].domain;
     let email=`${username}@${domain}`;
     account={address:email,password};
-    
-    const r=await fetch("https://api.mail.tm/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-    if(r.ok){document.getElementById("signupMessage").innerText=`Account created: ${email}. Waiting for verification...`;await waitForVerification();}
-    else{let err=await r.json();document.getElementById("signupMessage").innerText="Error: "+JSON.stringify(err);}
-  } catch(e){
-    document.getElementById("signupMessage").innerText="Error fetching domains or creating account: "+e;
-  }
+
+    let r=await fetch("https://api.mail.tm/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
+    if(!r.ok){let err=await r.text();document.getElementById("signupMessage").innerText="Error: "+err; return;}
+    document.getElementById("signupMessage").innerText=`Account created: ${email}. Waiting for verification...`;
+    await waitForVerification();
+  } catch(e){document.getElementById("signupMessage").innerText="Error: "+e;}
 }
 
 async function waitForVerification(){
@@ -105,38 +105,35 @@ async function waitForVerification(){
   while(!verified){
     await new Promise(r=>setTimeout(r,3000));
     let r=await fetch("https://api.mail.tm/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-    let data;
-    try {data=await r.json();} catch(e){ continue; }
-    if(data.token){token=data.token;verified=true;break;}
+    let data=await r.json().catch(()=>{return {};});
+    if(data.token){token=data.token;verified=true; break;}
   }
   document.getElementById("signupMessage").innerText="Verified! Logging in...";
   loginAfterSignup();
 }
 
 function loginAfterSignup(){
-  document.getElementById("signupBox").style.display="none";
+  document.getElementById("adminBox").style.display="none";
   document.getElementById("mailApp").style.display="flex";
   document.getElementById("userEmail").innerText=account.address;
   fetchMessages();
   setInterval(fetchMessages,5000);
 }
 
+// Login
 async function login(){
   let username=document.getElementById("loginUsername").value.trim().toLowerCase();
   let password=document.getElementById("loginPassword").value.trim();
   account={address:username,password};
   try{
     let r=await fetch("https://api.mail.tm/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-    const raw = await r.text();
-    let data;
-    try { data = JSON.parse(raw); } catch(e){ document.getElementById("loginMessage").innerText="Full server response:\n"+raw; return; }
+    let data=await r.json().catch(()=>{return {};});
     if(data.token){token=data.token;document.getElementById("loginBox").style.display="none";document.getElementById("mailApp").style.display="flex";document.getElementById("userEmail").innerText=account.address;fetchMessages();setInterval(fetchMessages,5000);}
-    else{document.getElementById("loginMessage").innerText="Login failed: "+JSON.stringify(data);}
-  } catch(e){
-    document.getElementById("loginMessage").innerText="Login fetch error: "+e;
-  }
+    else{document.getElementById("loginMessage").innerText="Login failed";}
+  } catch(e){document.getElementById("loginMessage").innerText="Error: "+e;}
 }
 
+// Fetch messages
 async function fetchMessages(){
   try{
     let r=await fetch("https://api.mail.tm/messages",{headers:{Authorization:"Bearer "+token}});
@@ -150,47 +147,35 @@ async function fetchMessages(){
       div.onclick=()=>showMessage(msg.id);
       messagesDiv.appendChild(div);
     });
-  } catch(e){console.log("Fetch messages error:",e);}
+  } catch(e){}
 }
 
+// Show message
 async function showMessage(id){
-  try{
-    let r=await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:"Bearer "+token}});
-    let msg=await r.json();
-    selectedMessage=msg;
-    document.getElementById("emailContent").innerHTML=`<b>From:</b> ${msg.from.address}<br><b>Subject:</b> ${msg.subject||"(no subject)"}<br><hr>${msg.text}`;
-    document.getElementById("replyForwardButtons").style.display="block";
-  } catch(e){console.log("Show message error:",e);}
+  let r=await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:"Bearer "+token}});
+  let msg=await r.json().catch(()=>{return {};});
+  selectedMessage=msg;
+  document.getElementById("emailContent").innerHTML=`<b>From:</b> ${msg.from?.address}<br><b>Subject:</b> ${msg.subject||"(no subject)"}<br><hr>${msg.text}`;
+  document.getElementById("replyForwardButtons").style.display="block";
 }
 
+// Send, Reply, Forward
 async function sendEmail(){
   const to=document.getElementById("toAddress").value.trim();
   const subject=document.getElementById("emailSubject").value.trim();
   const text=document.getElementById("emailBody").value.trim();
-  if(!to || !text){document.getElementById("sendMessage").innerText="Fill all required fields"; return;}
+  if(!to || !text){ document.getElementById("sendMessage").innerText="Fill all required fields"; return; }
   try{
-    const r=await fetch(backendURL,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({token,from:account.address,to,subject,text})
-    });
-    const raw = await r.text();
-    let data;
-    try{data=JSON.parse(raw);}catch(e){document.getElementById("sendMessage").innerText="Server returned non-JSON:\n"+raw; return;}
-    if(data.id){
-      document.getElementById("sendMessage").innerText="Email sent!";
-      document.getElementById("toAddress").value="";
-      document.getElementById("emailSubject").value="";
-      document.getElementById("emailBody").value="";
-    } else {
-      document.getElementById("sendMessage").innerText="Error sending:\n"+JSON.stringify(data,null,2);
-    }
-  } catch(e){document.getElementById("sendMessage").innerText="Send fetch error: "+e;}
+    const r=await fetch(backendURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ email:account.address,password:account.password,to,subject,text })});
+    const data=await r.json();
+    if(data.success){document.getElementById("sendMessage").innerText="Email sent!";document.getElementById("toAddress").value="";document.getElementById("emailSubject").value="";document.getElementById("emailBody").value="";}
+    else{document.getElementById("sendMessage").innerText="Error: "+JSON.stringify(data);}
+  } catch(e){document.getElementById("sendMessage").innerText="Error: "+e;}
 }
 
 function replyEmail(){
   if(!selectedMessage) return;
-  document.getElementById("toAddress").value=selectedMessage.from.address;
+  document.getElementById("toAddress").value=selectedMessage.from?.address||"";
   document.getElementById("emailSubject").value="Re: "+(selectedMessage.subject||"(no subject)");
   document.getElementById("emailBody").value="\n\n---- Original message ----\n"+selectedMessage.text;
 }
@@ -199,7 +184,7 @@ function forwardEmail(){
   if(!selectedMessage) return;
   document.getElementById("toAddress").value="";
   document.getElementById("emailSubject").value="Fwd: "+(selectedMessage.subject||"(no subject)");
-  document.getElementById("emailBody").value="\n\n---- Forwarded message ----\nFrom: "+selectedMessage.from.address+"\n"+selectedMessage.text;
+  document.getElementById("emailBody").value="\n\n---- Forwarded message ----\nFrom: "+selectedMessage.from?.address+"\n"+selectedMessage.text;
 }
 </script>
 </body>
