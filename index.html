@@ -7,7 +7,7 @@
 body {margin:0;font-family:Arial,sans-serif;background:#f6f8fc;}
 .navbar {background:#fff;padding:12px;border-bottom:1px solid #ddd;font-weight:bold;display:flex;justify-content:space-between;align-items:center;}
 .container {display:flex;height:calc(100vh - 50px);}
-.sidebar {width:300px;background:#fff;border-right:1px solid #ddd;padding:10px;}
+.sidebar {width:300px;background:#fff;border-right:1px solid #ddd;padding:10px;overflow-y:auto;}
 .sidebar h3 {margin:10px 0;font-size:16px;color:#666;}
 .inbox {flex:1;padding:20px;overflow-y:auto;}
 .message {background:#fff;margin-bottom:10px;padding:12px;border-radius:6px;border:1px solid #ddd;cursor:pointer;}
@@ -38,7 +38,7 @@ button:hover {background:#1669c1;}
 <!-- Login Form -->
 <div class="box" id="loginBox" style="display:none;">
 <h2>Login</h2>
-<input type="text" id="loginUsername" placeholder="Username">
+<input type="text" id="loginUsername" placeholder="Full Email Address">
 <input type="password" id="loginPassword" placeholder="Password">
 <button onclick="login()">Login</button>
 <p>Don’t have an account? <a href="#" onclick="showSignup()">Sign Up</a></p>
@@ -65,29 +65,29 @@ button:hover {background:#1669c1;}
 
 <script>
 let token = "";
-let address = "";
 let account = {};
 
 // Forms toggle
 function showLogin(){document.getElementById("signupBox").style.display="none";document.getElementById("loginBox").style.display="block";}
 function showSignup(){document.getElementById("loginBox").style.display="none";document.getElementById("signupBox").style.display="block";}
 
-// Create Account + verification
+// Create Account
 async function createAccount(){
-  let username = document.getElementById("signupUsername").value.trim().replace(/[^a-z0-9._-]/gi,'').toLowerCase();
-  let password = document.getElementById("signupPassword").value.trim();
+  let username=document.getElementById("signupUsername").value.trim().replace(/[^a-z0-9._-]/gi,'').toLowerCase();
+  let password=document.getElementById("signupPassword").value.trim();
   if(!username){document.getElementById("signupMessage").innerText="Invalid username."; return;}
   if(password.length<8){password="Aa123456!";}
-  
-  const res = await fetch("https://api.mail.tm/domains");
-  const data = await res.json();
-  const domain = data["hydra:member"][Math.floor(Math.random()*data["hydra:member"].length)].domain;
 
-  address = `${username}@${domain}`;
-  account={address,password};
+  // Get random domain
+  const res=await fetch("https://api.mail.tm/domains");
+  const data=await res.json();
+  const domain=data["hydra:member"][Math.floor(Math.random()*data["hydra:member"].length)].domain;
 
-  let r = await fetch("https://api.mail.tm/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-  if(r.ok){document.getElementById("signupMessage").innerText=`Account created: ${address}. Waiting for verification...`;await waitForVerification();}
+  let email=`${username}@${domain}`;
+  account={address:email,password};
+
+  let r=await fetch("https://api.mail.tm/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
+  if(r.ok){document.getElementById("signupMessage").innerText=`Account created: ${email}. Waiting for verification...`;await waitForVerification();}
   else{let err=await r.json();document.getElementById("signupMessage").innerText="Error: "+JSON.stringify(err);}
 }
 
@@ -114,7 +114,7 @@ function loginAfterSignup(){
 
 // Manual login
 async function login(){
-  let username=document.getElementById("loginUsername").value.trim().replace(/[^a-z0-9._-]/gi,'').toLowerCase();
+  let username=document.getElementById("loginUsername").value.trim().toLowerCase();
   let password=document.getElementById("loginPassword").value.trim();
   account={address:username,password};
   let r=await fetch("https://api.mail.tm/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
@@ -142,7 +142,7 @@ async function fetchMessages(){
 async function showMessage(id){
   let r=await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:"Bearer "+token}});
   let msg=await r.json();
-  document.getElementById("emailContent").innerHTML=`<b>From:</b> ${msg.from.address}<br><b>Subject:</b> ${msg.subject||"(no subject)"}<br><hr>${msg.text || msg.html || "(no content)"}`;
+  document.getElementById("emailContent").innerHTML=`<b>From:</b> ${msg.from.address}<br><b>Subject:</b> ${msg.subject||"(no subject)"}<br><hr>${msg.text||msg.html||"(no content)"}`;
 }
 
 // Send email
