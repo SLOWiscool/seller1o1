@@ -1,105 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Mail Portal</title>
-  <style>
-    body { font-family: Arial; margin: 30px; text-align:center; }
-    .hidden { display:none; }
-    input, button, textarea { margin:5px; padding:8px; width:90%; max-width:400px; }
-  </style>
+<meta charset="UTF-8">
+<title>Mail Portal</title>
+<style>
+body { font-family: Arial; margin:20px; text-align:center; }
+input, button, textarea { margin:5px; padding:8px; width:90%; max-width:400px; }
+.hidden { display:none; }
+</style>
 </head>
 <body>
-  <h1>Mail Portal</h1>
 
-  <!-- Login -->
-  <div id="login">
-    <h2>Login</h2>
-    <input id="email" type="email" placeholder="Email" /><br>
-    <input id="password" type="password" placeholder="Password" /><br>
-    <button onclick="login()">Login</button>
-    <p id="login-msg"></p>
-  </div>
+<h1>Mail Portal</h1>
 
-  <!-- Dashboard -->
-  <div id="dashboard" class="hidden">
-    <h2>Dashboard</h2>
-    <button onclick="showSupport()">Support</button>
-    <button onclick="showAdminPrompt()">Admin Panel</button>
-    <button onclick="logout()">Logout</button>
-    <hr>
+<div id="login">
+  <h2>Login</h2>
+  <input id="email" type="email" placeholder="Email"><br>
+  <input id="password" type="password" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
+  <p id="login-msg"></p>
+</div>
 
-    <h3>Send Email</h3>
-    <input id="to" placeholder="Recipient Email"/><br>
-    <input id="subject" placeholder="Subject"/><br>
-    <textarea id="body" placeholder="Message"></textarea><br>
-    <button onclick="sendEmail()">Send</button>
-    <button onclick="replyEmail()">Reply</button>
-    <button onclick="forwardEmail()">Forward</button>
-    <p id="send-msg"></p>
-  </div>
+<div id="buttons">
+  <button onclick="showSupport()">Support</button>
+  <button onclick="showAdminPrompt()">Admin Panel</button>
+</div>
 
-  <!-- Support -->
-  <div id="support" class="hidden">
-    <h2>Support</h2>
-    <p>Blank page for now</p>
-    <button onclick="hideSupport()">Back</button>
-  </div>
+<div id="dashboard" class="hidden">
+  <h2>Dashboard</h2>
+  <button onclick="logout()">Logout</button>
+  <hr>
+  <input id="to" placeholder="Recipient Email"><br>
+  <input id="subject" placeholder="Subject"><br>
+  <textarea id="body" placeholder="Message"></textarea><br>
+  <button onclick="sendEmail()">Send</button>
+  <button onclick="replyEmail()">Reply</button>
+  <button onclick="forwardEmail()">Forward</button>
+  <p id="send-msg"></p>
+</div>
 
-  <!-- Admin Panel -->
-  <div id="admin" class="hidden">
-    <h2>Admin Panel</h2>
-    <input id="newEmail" placeholder="New email"/><br>
-    <input id="newPass" type="password" placeholder="New password"/><br>
-    <button onclick="createAccount()">Create Account</button>
-    <p id="admin-msg"></p>
-  </div>
+<div id="support" class="hidden">
+  <h2>Support</h2>
+  <p>Blank page for now</p>
+  <button onclick="hideSupport()">Back</button>
+</div>
+
+<div id="admin" class="hidden">
+  <h2>Admin Panel</h2>
+  <input id="newEmail" placeholder="New email"><br>
+  <input id="newPass" type="password" placeholder="New password"><br>
+  <button onclick="createAccount()">Create Account</button>
+  <p id="admin-msg"></p>
+</div>
 
 <script>
-let jwt = "";
+let jwt="";
 
-async function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  const res = await fetch("/api/send.js", {
-    method: "POST",
+async function login(){
+  const email=document.getElementById("email").value;
+  const password=document.getElementById("password").value;
+  const res=await fetch("/api/send.js",{
+    method:"POST",
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({action:"login", email, password})
+    body:JSON.stringify({action:"login", email, password})
   });
-  const data = await res.json();
+  const data=await res.json();
   if(data.token){
-    jwt = data.token;
+    jwt=data.token;
     document.getElementById("login").classList.add("hidden");
     document.getElementById("dashboard").classList.remove("hidden");
-    document.getElementById("login-msg").innerText = "";
+    document.getElementById("login-msg").innerText="";
   } else {
-    document.getElementById("login-msg").innerText = "Login failed";
+    document.getElementById("login-msg").innerText=data.error||data["hydra:description"]||"Login failed";
   }
 }
 
 function logout(){
   jwt="";
-  document.getElementById("dashboard").classList.add("hidden");
   document.getElementById("login").classList.remove("hidden");
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("support").classList.add("hidden");
+  document.getElementById("admin").classList.add("hidden");
 }
 
-function showSupport(){
-  document.getElementById("support").classList.remove("hidden");
-}
-function hideSupport(){
-  document.getElementById("support").classList.add("hidden");
-}
+function showSupport(){ document.getElementById("support").classList.remove("hidden"); }
+function hideSupport(){ document.getElementById("support").classList.add("hidden"); }
+
 function showAdminPrompt(){
-  const code = prompt("Enter admin password:");
+  const code=prompt("Enter admin password:");
   if(code==="admin123"){
     document.getElementById("admin").classList.remove("hidden");
-  }else alert("Wrong password!");
+  } else alert("Wrong password!");
 }
 
 async function sendEmail(){
   const to=document.getElementById("to").value;
   const subject=document.getElementById("subject").value;
   const body=document.getElementById("body").value;
+  if(!jwt){ alert("Login first"); return; }
   const res=await fetch("/api/send.js",{
     method:"POST",
     headers:{'Content-Type':'application/json'},
@@ -109,13 +107,8 @@ async function sendEmail(){
   document.getElementById("send-msg").innerText=text;
 }
 
-async function replyEmail(){
-  alert("Reply feature placeholder");
-}
-
-async function forwardEmail(){
-  alert("Forward feature placeholder");
-}
+async function replyEmail(){ alert("Reply feature placeholder"); }
+async function forwardEmail(){ alert("Forward feature placeholder"); }
 
 async function createAccount(){
   const email=document.getElementById("newEmail").value;
