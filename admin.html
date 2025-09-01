@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel</title>
+<style>
+body {margin:0;font-family:Arial,sans-serif;background:#f6f8fc;}
+.box {width:360px;margin:80px auto;padding:30px;background:#fff;border:1px solid #ddd;border-radius:8px;text-align:center;}
+input, button {width:90%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;font-size:14px;}
+button {background:#1a73e8;color:white;border:none;cursor:pointer;}
+button:hover {background:#1669c1;}
+</style>
+</head>
+<body>
+
+<div class="box" id="passwordBox">
+<h2>Enter Admin Password</h2>
+<input type="password" id="adminPass" placeholder="Password">
+<button onclick="checkPassword()">Enter</button>
+<div id="passMessage"></div>
+</div>
+
+<div class="box" id="signupBox" style="display:none;">
+<h2>Create Email Account</h2>
+<input type="text" id="signupUsername" placeholder="Username">
+<input type="password" id="signupPassword" placeholder="Password">
+<button onclick="createAccount()">Create Account</button>
+<div id="signupMessage"></div>
+</div>
+
+<script>
+const adminPassword="supersecret"; // Change this password
+
+function checkPassword(){
+  let val=document.getElementById("adminPass").value;
+  if(val===adminPassword){
+    document.getElementById("passwordBox").style.display="none";
+    document.getElementById("signupBox").style.display="block";
+  } else {
+    document.getElementById("passMessage").innerText="Wrong password";
+  }
+}
+
+async function createAccount(){
+  let username=document.getElementById("signupUsername").value.trim().replace(/[^a-z0-9._-]/gi,'').toLowerCase();
+  let password=document.getElementById("signupPassword").value.trim();
+  if(!username){document.getElementById("signupMessage").innerText="Invalid username"; return;}
+  if(password.length<8) password="Aa123456!";
+
+  try {
+    const resDomains=await fetch("https://api.mail.tm/domains");
+    const domainsData=await resDomains.json();
+    const domain=domainsData["hydra:member"][Math.floor(Math.random()*domainsData["hydra:member"].length)].domain;
+    const email=`${username}@${domain}`;
+    const account={address:email,password};
+    
+    const res=await fetch("https://api.mail.tm/accounts",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(account)
+    });
+    if(res.ok){
+      document.getElementById("signupMessage").innerText=`Account created: ${email}`;
+    } else {
+      const err=await res.json();
+      document.getElementById("signupMessage").innerText="Error: "+JSON.stringify(err);
+    }
+  } catch(e){
+    document.getElementById("signupMessage").innerText="Error: "+e;
+  }
+}
+</script>
+</body>
+</html>
