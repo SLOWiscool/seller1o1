@@ -1,119 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>TempMail Client</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mail — Create Account / Login</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #111; color: #eee; text-align: center; }
-    input, button { padding: 8px; margin: 6px; border-radius: 6px; border: none; }
-    button { background: #444; color: #fff; cursor: pointer; }
-    button:hover { background: #666; }
-    #inbox { margin-top: 20px; text-align: left; max-width: 600px; margin-left:auto; margin-right:auto; }
-    .msg { border: 1px solid #444; border-radius: 8px; padding: 10px; margin: 8px 0; background:#222; }
+    :root{--bg:#0b1220;--card:#0f1724;--accent:#2563eb;--muted:#94a3b8;--text:#e6eef8;}
+    body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,var(--bg),#061021);color:var(--text);display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px;}
+    .wrap{width:980px;max-width:100%;display:grid;grid-template-columns:1fr 420px;gap:28px;}
+    .left{background:transparent;padding:28px;border-radius:12px;}
+    .card{background:var(--card);padding:20px;border-radius:10px;box-shadow:0 6px 20px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.02);}
+    h1{margin:0 0 8px;font-size:20px}
+    p.lead{color:var(--muted);margin:0 0 18px}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:10px}
+    input[type="text"],input[type="password"]{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:var(--text);margin-top:6px}
+    .row{display:flex;gap:10px}
+    button{background:var(--accent);color:white;border:none;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .small{font-size:13px;padding:8px 10px}
+    .muted{color:var(--muted);font-size:13px}
+    .emailBox{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;margin-top:10px;word-break:break-word}
+    .right{display:flex;flex-direction:column;gap:16px}
+    .inboxHeader{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .inboxList{max-height:520px;overflow:auto;margin-top:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);padding:8px;background:linear-gradient(180deg,#071028,#081430)}
+    .msgItem{padding:10px;border-radius:8px;cursor:pointer;margin-bottom:8px;border:1px solid rgba(255,255,255,0.02)}
+    .msgItem:hover{background:rgba(255,255,255,0.02)}
+    .msgFrom{font-weight:600}
+    .msgSub{color:var(--muted);font-size:13px;margin-top:4px}
+    .msgBody{margin-top:12px;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;color:var(--text);white-space:pre-wrap}
+    .topRow{display:flex;gap:8px;align-items:center}
+    .note{font-size:13px;color:var(--muted);margin-top:8px}
+    .hidden{display:none}
+    @media (max-width:980px){.wrap{grid-template-columns:1fr;}.right{order:-1}}
   </style>
 </head>
 <body>
-  <h1>📨 Inbox</h1>
+  <div class="wrap">
+    <div class="left">
+      <div class="card">
+        <h1>Secure Mail — Create or Login</h1>
+        <p class="lead">Choose a username and password. We'll assign a valid domain automatically so your address is real (e.g. <span id="exampleEmail" class="muted">random@example.com</span>).</p>
 
-  <div id="auth">
-    <h3>Create Account</h3>
-    <input id="newUser" placeholder="Username">
-    <input id="newPass" type="password" placeholder="Password">
-    <button onclick="register()">Register</button>
+        <div id="createSection">
+          <label>Username (your choice)</label>
+          <input type="text" id="usernameCreate" placeholder="choose a username (e.g. alice)" autocomplete="off" />
 
-    <h3>Login</h3>
-    <input id="loginUser" placeholder="Username">
-    <input id="loginPass" type="password" placeholder="Password">
-    <button onclick="login()">Login</button>
+          <label>Password</label>
+          <input type="password" id="passwordCreate" placeholder="pick a secure password" />
+
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button id="createBtn">Create Account</button>
+            <button id="createAndLoginBtn" class="ghost">Create & Sign In</button>
+          </div>
+
+          <div id="createMsg" class="note"></div>
+        </div>
+
+        <hr style="border:none;height:1px;background:rgba(255,255,255,0.02);margin:18px 0">
+
+        <div id="loginSection">
+          <label>Login (username or full email)</label>
+          <input type="text" id="loginIdentifier" placeholder="alice or alice@domain.example" autocomplete="off" />
+
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="password" />
+
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button id="loginBtn">Sign In</button>
+            <button id="autofillLast" class="ghost small">Use last created</button>
+          </div>
+
+          <div id="loginMsg" class="note"></div>
+        </div>
+
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="card">
+        <div class="topRow">
+          <div>
+            <strong>Notes</strong>
+            <div class="muted">We register a real mailbox on a temporary domain provider behind the scenes. You control the username & password.</div>
+          </div>
+        </div>
+        <div class="note">We do not store your password outside your mailbox provider. The mapping of username→email is kept locally (in your browser) so you can login with just the username if you want.</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div id="accountCard" class="card hidden">
+        <div class="inboxHeader">
+          <div>
+            <div style="font-size:14px;color:var(--muted)">Signed in as</div>
+            <div id="currentEmail" style="font-weight:700;"></div>
+            <div id="tokenNote" class="muted" style="font-size:12px;margin-top:6px">Token active</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end">
+            <div style="display:flex;gap:8px">
+              <button id="refreshBtn" class="small">Refresh</button>
+              <button id="logoutBtn" class="small ghost">Logout</button>
+            </div>
+            <button id="copyBtn" class="small ghost" style="margin-top:8px">Copy Email</button>
+          </div>
+        </div>
+
+        <div class="inboxList" id="inboxList">
+          <div class="muted">No messages loaded — click Refresh.</div>
+        </div>
+
+        <div id="messageView" class="hidden">
+          <div style="margin-top:12px" class="muted">Message content</div>
+          <div id="messageBody" class="msgBody"></div>
+        </div>
+      </div>
+
+      <div id="idleCard" class="card">
+        <h3 style="margin:0 0 8px">Inbox</h3>
+        <div class="muted">Create an account or login to view your mailbox here.</div>
+        <div id="lastCreated" class="emailBox" style="margin-top:12px"></div>
+      </div>
+    </div>
   </div>
 
-  <div id="account" style="display:none;">
-    <p>Logged in as: <span id="email"></span></p>
-    <button onclick="loadInbox()">🔄 Refresh Inbox</button>
-    <div id="inbox"></div>
-  </div>
+<script>
+/*
+ Single-file client using mail.tm API.
+ - Create account with custom username + password (appends a valid domain automatically)
+ - Optionally auto-login after create
+ - Login using username (local mapping) or full email
+ - View inbox, read messages
+ - Stores username->email mapping in localStorage so username-only login works
+ Notes: mail.tm CORS-enabled; this runs entirely client-side.
+*/
 
-  <script>
-    let token = null;
-    let currentEmail = null;
+const API_BASE = "https://api.mail.tm";
+const exampleEmailEl = document.getElementById("exampleEmail");
 
-    async function register() {
-      const username = document.getElementById('newUser').value.trim();
-      const password = document.getElementById('newPass').value.trim();
-      if (!username || !password) return alert("Enter username + password");
+// Utils: UI elements
+const usernameCreate = document.getElementById("usernameCreate");
+const passwordCreate = document.getElementById("passwordCreate");
+const createBtn = document.getElementById("createBtn");
+const createAndLoginBtn = document.getElementById("createAndLoginBtn");
+const createMsg = document.getElementById("createMsg");
 
-      // ✅ Ask API to create a new account
-      const res = await fetch("https://api.mail.tm/accounts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: username, password })
-      });
+const loginIdentifier = document.getElementById("loginIdentifier");
+const loginPassword = document.getElementById("loginPassword");
+const loginBtn = document.getElementById("loginBtn");
+const autofillLast = document.getElementById("autofillLast");
+const loginMsg = document.getElementById("loginMsg");
 
-      const data = await res.json();
-      if (res.ok) {
-        alert("Account created successfully!");
+const accountCard = document.getElementById("accountCard");
+const idleCard = document.getElementById("idleCard");
+const currentEmail = document.getElementById("currentEmail");
+const tokenNote = document.getElementById("tokenNote");
+const refreshBtn = document.getElementById("refreshBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const copyBtn = document.getElementById("copyBtn");
+
+const inboxList = document.getElementById("inboxList");
+const messageView = document.getElementById("messageView");
+const messageBody = document.getElementById("messageBody");
+const lastCreated = document.getElementById("lastCreated");
+
+// Local state
+let authToken = null;
+let activeEmail = null;
+let localMap = JSON.parse(localStorage.getItem("user_email_map") || "{}");
+
+// show example domain to user (first domain available)
+async function loadExampleDomain(){
+  try {
+    const r = await fetch(API_BASE + "/domains");
+    const j = await r.json();
+    const member = j["hydra:member"];
+    if(member && member.length) {
+      exampleEmailEl.textContent = "yourname@" + member[0].domain;
+    } else exampleEmailEl.textContent = "yourname@domain";
+  } catch(e){
+    exampleEmailEl.textContent = "yourname@domain";
+  }
+}
+loadExampleDomain();
+
+// helper: pick a domain (use one from API randomly)
+async function pickDomain(){
+  const r = await fetch(API_BASE + "/domains");
+  const j = await r.json();
+  const arr = j["hydra:member"];
+  if(!arr || !arr.length) throw new Error("No domains available");
+  return arr[Math.floor(Math.random()*arr.length)].domain;
+}
+
+// helper: store mapping username->email locally
+function saveLocalMapping(username, email){
+  localMap[username.toLowerCase()] = email;
+  localStorage.setItem("user_email_map", JSON.stringify(localMap));
+}
+
+// helper: find email by username
+function getEmailForUsername(username){
+  return localMap[username.toLowerCase()] || null;
+}
+
+// create account using chosen username + password, domain chosen by API
+async function createAccount(username, password){
+  createMsg.textContent = "Creating account…";
+  try {
+    // if user typed an @ with domain, respect it
+    let email;
+    if(username.includes("@")){
+      email = username;
+    } else {
+      const domain = await pickDomain();
+      email = username + "@" + domain;
+    }
+
+    const res = await fetch(API_BASE + "/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: email, password })
+    });
+
+    const resp = await res.json();
+    if(!res.ok){
+      // show friendly message (validation errors)
+      createMsg.textContent = "Error: " + (resp.detail || JSON.stringify(resp));
+      return { ok:false, resp };
+    }
+
+    // save local mapping (username only key)
+    const key = username.includes("@") ? username.split("@")[0] : username;
+    saveLocalMapping(key, email);
+
+    createMsg.textContent = "Created: " + email;
+    lastCreated.innerText = "Last created: " + email;
+    return { ok:true, email };
+  } catch (e){
+    createMsg.textContent = "Error: " + e.message;
+    return { ok:false, error:e };
+  }
+}
+
+// login by full email (or by username if stored mapping exists)
+async function loginWithIdentifier(identifier, password){
+  loginMsg.textContent = "Signing in…";
+  try {
+    let emailToUse = identifier;
+    if(!identifier.includes("@")){
+      // try to resolve using local mapping
+      const mapped = getEmailForUsername(identifier);
+      if(mapped){
+        emailToUse = mapped;
       } else {
-        alert("Error: " + JSON.stringify(data));
+        loginMsg.textContent = "No local mapping for that username. Use full email or create account first.";
+        return { ok:false };
       }
     }
 
-    async function login() {
-      const username = document.getElementById('loginUser').value.trim();
-      const password = document.getElementById('loginPass').value.trim();
-
-      const res = await fetch("https://api.mail.tm/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: username, password })
-      });
-
-      const data = await res.json();
-      if (res.ok && data.token) {
-        token = data.token;
-
-        // ✅ Get account info to display actual email
-        const accRes = await fetch("https://api.mail.tm/me", {
-          headers: { "Authorization": "Bearer " + token }
-        });
-        const accData = await accRes.json();
-
-        currentEmail = accData.address;
-        document.getElementById("email").textContent = currentEmail;
-
-        document.getElementById("auth").style.display = "none";
-        document.getElementById("account").style.display = "block";
-
-        loadInbox();
-      } else {
-        alert("Login failed: " + JSON.stringify(data));
-      }
+    const res = await fetch(API_BASE + "/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: emailToUse, password })
+    });
+    const j = await res.json();
+    if(!res.ok || !j.token){
+      loginMsg.textContent = "Login failed: " + (j.detail || JSON.stringify(j));
+      return { ok:false };
     }
 
-    async function loadInbox() {
-      if (!token) return;
+    authToken = j.token;
+    // fetch /me to get canonical email address
+    const meRes = await fetch(API_BASE + "/me", {
+      headers: { "Authorization": "Bearer " + authToken }
+    });
+    const me = await meRes.json();
+    activeEmail = me.address || emailToUse;
 
-      const res = await fetch("https://api.mail.tm/messages", {
-        headers: { "Authorization": "Bearer " + token }
-      });
-      const data = await res.json();
+    // update UI
+    currentEmail.textContent = activeEmail;
+    accountCard.classList.remove("hidden");
+    idleCard.classList.add("hidden");
+    loginMsg.textContent = "Signed in";
 
-      const inbox = document.getElementById("inbox");
-      inbox.innerHTML = "";
+    // pre-populate lastCreated
+    lastCreated.innerText = "Signed in as: " + activeEmail;
+    return { ok:true };
+  } catch(e){
+    loginMsg.textContent = "Error: " + e.message;
+    return { ok:false, error:e };
+  }
+}
 
-      if (data["hydra:member"].length === 0) {
-        inbox.innerHTML = "<p>No messages yet.</p>";
-        return;
-      }
-
-      data["hydra:member"].forEach(msg => {
-        const div = document.createElement("div");
-        div.className = "msg";
-        div.innerHTML = `<b>From:</b> ${msg.from.address}<br>
-                         <b>Subject:</b> ${msg.subject}<br>
-                         <b>Preview:</b> ${msg.intro}`;
-        inbox.appendChild(div);
-      });
+// fetch inbox messages list
+async function refreshInbox(){
+  if(!authToken){ inboxList.innerHTML = "<div class='muted'>Not signed in</div>"; return; }
+  inboxList.innerHTML = "<div class='muted'>Loading…</div>";
+  messageView.classList.add("hidden");
+  try {
+    const res = await fetch(API_BASE + "/messages", {
+      headers: { "Authorization": "Bearer " + authToken }
+    });
+    const j = await res.json();
+    const arr = j["hydra:member"] || [];
+    if(!arr.length){
+      inboxList.innerHTML = "<div class='muted'>No messages yet.</div>";
+      return;
     }
-  </script>
-</body>
-</html>
+    inboxList.innerHTML = "";
+    for(const m of arr){
+      const item = document.createElement("div");
+      item.className = "msgItem";
+      item.innerHTML = `<div class="msgFrom">${escapeHtml(m.from?.ad
