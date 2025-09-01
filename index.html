@@ -2,83 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Disposable Email Generator</title>
+  <title>Temp Mail (mail.tm)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    button {
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin-top: 20px;
-      cursor: pointer;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-    button:hover {
-      background: #1d4ed8;
-    }
-    #emailBox {
-      margin-top: 20px;
-      background: #1e293b;
-      padding: 15px;
-      border-radius: 10px;
-      font-size: 18px;
-      word-break: break-all;
-    }
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; text-align: center; padding: 30px; }
+    button { padding: 10px 20px; margin: 10px; border: none; border-radius: 6px; background: #4CAF50; color: white; cursor: pointer; }
+    button:hover { background: #45a049; }
+    #email { font-size: 20px; margin: 20px; }
+    .msg { border: 1px solid #444; margin: 10px; padding: 10px; border-radius: 8px; text-align: left; }
   </style>
 </head>
 <body>
-  <h1>Disposable Email Generator</h1>
-  <button id="generateBtn">Generate Email</button>
-  <div id="emailBox"></div>
+  <h1>Temp Mail Generator</h1>
+  <button id="genMail">Generate Email</button>
+  <div id="email">No email generated yet</div>
+  <button id="checkInbox" disabled>Check Inbox</button>
+  <div id="inbox"></div>
 
   <script>
-    const btn = document.getElementById("generateBtn");
-    const emailBox = document.getElementById("emailBox");
+    let account = null;
+    let token = null;
 
-    async function generateEmail() {
-      try {
-        // get available domains
-        let domainRes = await fetch("https://api.mail.tm/domains");
-        let domainData = await domainRes.json();
-        let domain = domainData['hydra:member'][0].domain;
+    async function registerMail() {
+      const domainRes = await fetch("https://api.mail.tm/domains");
+      const domains = await domainRes.json();
+      const domain = domains['hydra:member'][0].domain;
 
-        // create random email
-        let randomUser = Math.random().toString(36).substring(2, 10);
-        let email = randomUser + "@" + domain;
+      const randomName = "user" + Math.floor(Math.random() * 100000);
+      const email = `${randomName}@${domain}`;
+      const password = "Pass" + Math.random().toString(36).slice(2);
 
-        // create account
-        let accRes = await fetch("https://api.mail.tm/accounts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            address: email,
-            password: "password123"
-          })
+      // Register account
+      await fetch("https://api.mail.tm/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: email, password })
+      });
+
+      // Login to get token
+      const loginRes = await fetch("https://api.mail.tm/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: email, password })
+      });
+      const loginData = await loginRes.json();
+      token = loginData.token;
+      account = email;
+
+      document.getElementById("email").innerText = email;
+      document.getElementById("checkInbox").disabled = false;
+    }
+
+    async function checkInbox() {
+      const inboxDiv = document.getElementById("inbox");
+      inboxDiv.innerHTML = "<p>Loading...</p>";
+
+      const res = await fetch("https://api.mail.tm/messages", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await res.json();
+      inboxDiv.innerHTML = "";
+
+      if (!data["hydra:member"].length) {
+        inboxDiv.innerHTML = "<p>No messages yet.</p>";
+        return;
+      }
+
+      for (let msg of data["hydra:member"]) {
+        let msgRes = await fetch("https://api.mail.tm/messages/" + msg.id, {
+          headers: { Authorization: "Bearer " + token }
         });
+        let fullMsg = await msgRes.json();
 
-        if (!accRes.ok) {
-          throw new Error("Failed to create account");
-        }
-
-        emailBox.innerHTML = `<b>Email:</b> ${email}<br><b>Password:</b> password123`;
-      } catch (e) {
-        emailBox.textContent = "Error: " + e.message;
+        const div = document.createElement("div");
+        div.className = "msg";
+        div.innerHTML = `
+          <b>From:</b> ${fullMsg.from.address}<br>
+          <b>Subject:</b> ${fullMsg.subject}<br>
+          <b>Text:</b><br>
+          <pre>${fullMsg.text || "(no text)"}</pre>
+        `;
+        inboxDiv.appendChild(div);
       }
     }
 
-    btn.onclick = generateEmail;
+    document.getElementById("genMail").onclick = registerMail;
+    document.getElementById("checkInbox").onclick = checkInbox;
   </script>
 </body>
 </html>
