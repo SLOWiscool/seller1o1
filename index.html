@@ -2,91 +2,109 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Temp Mail (mail.tm)</title>
+  <title>Secure Mail</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #111; color: #fff; text-align: center; padding: 30px; }
-    button { padding: 10px 20px; margin: 10px; border: none; border-radius: 6px; background: #4CAF50; color: white; cursor: pointer; }
-    button:hover { background: #45a049; }
-    #email { font-size: 20px; margin: 20px; }
-    .msg { border: 1px solid #444; margin: 10px; padding: 10px; border-radius: 8px; text-align: left; }
+    body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; }
+    .container { max-width: 600px; margin:50px auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align:center; }
+    input, button { width:100%; padding:10px; margin:5px 0; border:1px solid #ccc; border-radius:5px; }
+    button { background:#007bff; color:#fff; cursor:pointer; }
+    button:hover { background:#0056b3; }
+    #inbox { margin-top:20px; }
+    .email { border-bottom:1px solid #ddd; padding:10px; }
+    .email:last-child { border:none; }
   </style>
 </head>
 <body>
-  <h1>Temp Mail Generator</h1>
-  <button id="genMail">Generate Email</button>
-  <div id="email">No email generated yet</div>
-  <button id="checkInbox" disabled>Check Inbox</button>
-  <div id="inbox"></div>
+  <div class="container">
+    <h2>Secure Mail</h2>
+
+    <!-- Signup -->
+    <div id="signup">
+      <h3>Create Account</h3>
+      <input type="text" id="newUser" placeholder="Username (e.g. john)">
+      <input type="password" id="newPass" placeholder="Password">
+      <button onclick="signup()">Sign Up</button>
+    </div>
+
+    <!-- Login -->
+    <div id="login">
+      <h3>Login</h3>
+      <input type="text" id="loginUser" placeholder="Username (e.g. john)">
+      <input type="password" id="loginPass" placeholder="Password">
+      <button onclick="login()">Login</button>
+    </div>
+
+    <!-- Inbox -->
+    <div id="inbox" style="display:none;">
+      <h3>Your Inbox</h3>
+      <button onclick="loadInbox()">Refresh Inbox</button>
+      <div id="emails"></div>
+    </div>
+  </div>
 
   <script>
-    let account = null;
-    let token = null;
+    let token = "";
+    const domain = "mail.tm";
 
-    async function registerMail() {
-      const domainRes = await fetch("https://api.mail.tm/domains");
-      const domains = await domainRes.json();
-      const domain = domains['hydra:member'][0].domain;
+    async function signup() {
+      const user = document.getElementById("newUser").value;
+      const pass = document.getElementById("newPass").value;
+      const email = user + "@" + domain;
 
-      const randomName = "user" + Math.floor(Math.random() * 100000);
-      const email = `${randomName}@${domain}`;
-      const password = "Pass" + Math.random().toString(36).slice(2);
-
-      // Register account
-      await fetch("https://api.mail.tm/accounts", {
+      const res = await fetch("https://api.mail.tm/accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: email, password })
+        body: JSON.stringify({ address: email, password: pass })
       });
-
-      // Login to get token
-      const loginRes = await fetch("https://api.mail.tm/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: email, password })
-      });
-      const loginData = await loginRes.json();
-      token = loginData.token;
-      account = email;
-
-      document.getElementById("email").innerText = email;
-      document.getElementById("checkInbox").disabled = false;
+      if (res.ok) {
+        alert("Account created! You can now log in.");
+      } else {
+        const err = await res.json();
+        alert("Error: " + err.detail);
+      }
     }
 
-    async function checkInbox() {
-      const inboxDiv = document.getElementById("inbox");
-      inboxDiv.innerHTML = "<p>Loading...</p>";
+    async function login() {
+      const user = document.getElementById("loginUser").value;
+      const pass = document.getElementById("loginPass").value;
+      const email = user + "@" + domain;
 
+      const res = await fetch("https://api.mail.tm/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: email, password: pass })
+      });
+      const data = await res.json();
+      if (data.token) {
+        token = data.token;
+        document.getElementById("inbox").style.display = "block";
+        loadInbox();
+      } else {
+        alert("Login failed: " + data.detail);
+      }
+    }
+
+    async function loadInbox() {
       const res = await fetch("https://api.mail.tm/messages", {
         headers: { Authorization: "Bearer " + token }
       });
       const data = await res.json();
-      inboxDiv.innerHTML = "";
-
-      if (!data["hydra:member"].length) {
-        inboxDiv.innerHTML = "<p>No messages yet.</p>";
+      const box = document.getElementById("emails");
+      box.innerHTML = "";
+      if (data["hydra:member"].length === 0) {
+        box.innerHTML = "<p>No messages yet.</p>";
         return;
       }
-
-      for (let msg of data["hydra:member"]) {
-        let msgRes = await fetch("https://api.mail.tm/messages/" + msg.id, {
-          headers: { Authorization: "Bearer " + token }
-        });
-        let fullMsg = await msgRes.json();
-
-        const div = document.createElement("div");
-        div.className = "msg";
-        div.innerHTML = `
-          <b>From:</b> ${fullMsg.from.address}<br>
-          <b>Subject:</b> ${fullMsg.subject}<br>
-          <b>Text:</b><br>
-          <pre>${fullMsg.text || "(no text)"}</pre>
-        `;
-        inboxDiv.appendChild(div);
-      }
+      data["hydra:member"].forEach(msg => {
+        box.innerHTML += `
+          <div class="email">
+            <b>From:</b> ${msg.from.address}<br>
+            <b>Subject:</b> ${msg.subject}<br>
+            <small>${msg.intro}</small>
+          </div>`;
+      });
     }
-
-    document.getElementById("genMail").onclick = registerMail;
-    document.getElementById("checkInbox").onclick = checkInbox;
   </script>
 </body>
 </html>
