@@ -1,35 +1,35 @@
-import fetch from "node-fetch";
+// /api/send.js
+import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-  
-  const { token, from, to, subject, text } = req.body;
-  if (!token || !from || !to || !text) 
+
+  const { from, password, to, subject, text } = req.body;
+
+  if (!from || !password || !to || !text) {
     return res.status(400).json({ error: "Missing required fields" });
+  }
 
   try {
-    const r = await fetch("https://api.mail.tm/messages", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        from: { address: from, name: "TempMail User" },
-        to: [{ address: to }],
-        subject,
-        text
-      })
+    // Configure SMTP transport
+    let transporter = nodemailer.createTransport({
+      host: "smtp.mail.tm",      // Mail.tm SMTP host
+      port: 587,                 // SMTP port
+      secure: false,             // true for 465, false for 587
+      auth: { user: from, pass: password }
     });
 
-    const textResponse = await r.text();
-    let data;
-    try { data = JSON.parse(textResponse); } 
-    catch(e){ return res.status(500).json({ error: "Non-JSON response", raw:textResponse }); }
+    // Send email
+    let info = await transporter.sendMail({
+      from, 
+      to, 
+      subject: subject || "(no subject)",
+      text
+    });
 
-    if(r.ok) res.status(200).json(data);
-    else res.status(r.status).json({ error:"Failed to send", details:data });
-  } catch (e) {
-    res.status(500).json({ error: e.toString() });
+    res.status(200).json({ success: true, messageId: info.messageId });
+  } catch (err) {
+    // Return full error
+    res.status(500).json({ error: err.toString() });
   }
 }
