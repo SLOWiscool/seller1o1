@@ -1,191 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>TempMail Gmail Clone</title>
-<style>
-body {margin:0;font-family:Arial,sans-serif;background:#f6f8fc;}
-.navbar {background:#fff;padding:12px;border-bottom:1px solid #ddd;font-weight:bold;display:flex;justify-content:space-between;align-items:center;}
-.container {display:flex;height:calc(100vh - 50px);}
-.sidebar {width:320px;background:#fff;border-right:1px solid #ddd;padding:10px;overflow-y:auto;}
-.sidebar h3 {margin:10px 0;font-size:16px;color:#666;}
-.inbox {flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;}
-.message {background:#fff;margin-bottom:10px;padding:12px;border-radius:6px;border:1px solid #ddd;cursor:pointer;}
-.message:hover {background:#f0f0f0;}
-.box {width:360px;margin:80px auto;padding:30px;background:#fff;border:1px solid #ddd;border-radius:8px;text-align:center;}
-input, button, textarea {width:90%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;font-size:14px;}
-button {background:#1a73e8;color:white;border:none;cursor:pointer;}
-button:hover {background:#1669c1;}
-#emailContent {background:#fff;padding:12px;border-radius:6px;border:1px solid #ddd;margin-bottom:10px;white-space:pre-wrap;flex:1;overflow-y:auto;}
-#replyForwardButtons {margin-top:10px;}
-#replyForwardButtons button {width:120px;margin-right:10px;}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mail.tm SMTP Client</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f3f3;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 400px;
+      margin: 20px auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    input, textarea, button {
+      width: 100%;
+      margin: 8px 0;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #0070f3;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #005bb5;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: green;
+    }
+    #error {
+      margin-top: 10px;
+      font-size: 14px;
+      color: red;
+    }
+  </style>
 </head>
 <body>
 
-<div class="navbar">
-  <div>TempMail</div>
-  <div id="userEmail" style="font-size:14px;"></div>
-</div>
-
-<!-- Admin Panel / Sign Up -->
-<div class="box" id="adminBox">
-<h2>Admin Panel - Create Account</h2>
-<input type="text" id="signupUsername" placeholder="Choose a username">
-<input type="password" id="signupPassword" placeholder="Choose a password">
-<button onclick="createAccount()">Create Account</button>
-<p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
-<div id="signupMessage"></div>
-</div>
-
-<!-- Login -->
-<div class="box" id="loginBox" style="display:none;">
-<h2>Login</h2>
-<input type="text" id="loginUsername" placeholder="Full Email Address">
-<input type="password" id="loginPassword" placeholder="Password">
-<button onclick="login()">Login</button>
-<p>Don’t have an account? <a href="#" onclick="showSignup()">Sign Up</a></p>
-<div id="loginMessage"></div>
-</div>
-
-<!-- Mail App -->
-<div class="container" id="mailApp" style="display:none;">
-  <div class="sidebar">
-    <h3>Send New Email</h3>
-    <input type="text" id="toAddress" placeholder="To">
-    <input type="text" id="emailSubject" placeholder="Subject">
-    <textarea id="emailBody" placeholder="Message"></textarea>
-    <button onclick="sendEmail()">Send</button>
-    <div id="sendMessage"></div>
-    <h3>Inbox</h3>
-    <div id="messages"></div>
+  <!-- Login -->
+  <div class="card">
+    <h2>Login to Mail.tm</h2>
+    <input type="email" id="loginEmail" placeholder="Your Mail.tm Email" required />
+    <input type="password" id="loginPassword" placeholder="Password" required />
+    <button onclick="login()">Login</button>
+    <div id="loginStatus"></div>
   </div>
-  <div class="inbox">
-    <h2>Email Content</h2>
-    <div id="emailContent">Click a message to view its content</div>
-    <div id="replyForwardButtons" style="display:none;">
-      <button onclick="replyEmail()">Reply</button>
-      <button onclick="forwardEmail()">Forward</button>
-    </div>
+
+  <!-- Send Message -->
+  <div class="card" id="sendCard" style="display:none;">
+    <h2>Send Email</h2>
+    <input type="email" id="to" placeholder="Recipient Email" required />
+    <input type="text" id="subject" placeholder="Subject" required />
+    <textarea id="message" rows="5" placeholder="Message"></textarea>
+    <button onclick="sendMail()">Send</button>
+    <div id="status"></div>
+    <div id="error"></div>
   </div>
-</div>
 
-<script>
-let token = "";
-let account = {};
-let selectedMessage = null;
-const backendURL = "/api/send";
+  <script>
+    let token = null;
 
-function showLogin(){document.getElementById("adminBox").style.display="none";document.getElementById("loginBox").style.display="block";}
-function showSignup(){document.getElementById("loginBox").style.display="none";document.getElementById("adminBox").style.display="block";}
+    async function login() {
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
 
-// Admin - Create Account
-async function createAccount(){
-  let username=document.getElementById("signupUsername").value.trim().replace(/[^a-z0-9._-]/gi,'').toLowerCase();
-  let password=document.getElementById("signupPassword").value.trim();
-  if(!username){document.getElementById("signupMessage").innerText="Invalid username."; return;}
-  if(password.length<8){password="Aa123456!";}
+      const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "login", email, password })
+      });
 
-  try{
-    const res=await fetch("https://api.mail.tm/domains");
-    const data=await res.json();
-    const domain=data["hydra:member"][Math.floor(Math.random()*data["hydra:member"].length)].domain;
-    let email=`${username}@${domain}`;
-    account={address:email,password};
+      const data = await res.json();
 
-    let r=await fetch("https://api.mail.tm/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-    if(!r.ok){let err=await r.text();document.getElementById("signupMessage").innerText="Error: "+err; return;}
-    document.getElementById("signupMessage").innerText=`Account created: ${email}. Waiting for verification...`;
-    await waitForVerification();
-  } catch(e){document.getElementById("signupMessage").innerText="Error: "+e;}
-}
+      if (data.token) {
+        token = data.token;
+        document.getElementById("loginStatus").innerText = "✅ Logged in!";
+        document.getElementById("sendCard").style.display = "block";
+      } else {
+        document.getElementById("loginStatus").innerText = "❌ Login failed.";
+      }
+    }
 
-async function waitForVerification(){
-  let verified=false;
-  while(!verified){
-    await new Promise(r=>setTimeout(r,3000));
-    let r=await fetch("https://api.mail.tm/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-    let data=await r.json().catch(()=>{return {};});
-    if(data.token){token=data.token;verified=true; break;}
-  }
-  document.getElementById("signupMessage").innerText="Verified! Logging in...";
-  loginAfterSignup();
-}
+    async function sendMail() {
+      const to = document.getElementById("to").value;
+      const subject = document.getElementById("subject").value;
+      const message = document.getElementById("message").value;
 
-function loginAfterSignup(){
-  document.getElementById("adminBox").style.display="none";
-  document.getElementById("mailApp").style.display="flex";
-  document.getElementById("userEmail").innerText=account.address;
-  fetchMessages();
-  setInterval(fetchMessages,5000);
-}
+      const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send", token, to, subject, message })
+      });
 
-// Login
-async function login(){
-  let username=document.getElementById("loginUsername").value.trim().toLowerCase();
-  let password=document.getElementById("loginPassword").value.trim();
-  account={address:username,password};
-  try{
-    let r=await fetch("https://api.mail.tm/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(account)});
-    let data=await r.json().catch(()=>{return {};});
-    if(data.token){token=data.token;document.getElementById("loginBox").style.display="none";document.getElementById("mailApp").style.display="flex";document.getElementById("userEmail").innerText=account.address;fetchMessages();setInterval(fetchMessages,5000);}
-    else{document.getElementById("loginMessage").innerText="Login failed";}
-  } catch(e){document.getElementById("loginMessage").innerText="Error: "+e;}
-}
+      const data = await res.json();
 
-// Fetch messages
-async function fetchMessages(){
-  try{
-    let r=await fetch("https://api.mail.tm/messages",{headers:{Authorization:"Bearer "+token}});
-    let data=await r.json();
-    const messagesDiv=document.getElementById("messages");
-    messagesDiv.innerHTML="";
-    data["hydra:member"].forEach(msg=>{
-      let div=document.createElement("div");
-      div.className="message";
-      div.innerHTML=`<b>${msg.from.address}</b><br>${msg.subject||"(no subject)"}<br><small>${new Date(msg.createdAt).toLocaleString()}</small>`;
-      div.onclick=()=>showMessage(msg.id);
-      messagesDiv.appendChild(div);
-    });
-  } catch(e){}
-}
+      if (data.success) {
+        document.getElementById("status").innerText = "✅ Email sent!";
+        document.getElementById("error").innerText = "";
+      } else {
+        document.getElementById("error").innerText = "❌ Error: " + (data.error || "Failed");
+        document.getElementById("status").innerText = "";
+      }
+    }
+  </script>
 
-// Show message
-async function showMessage(id){
-  let r=await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:"Bearer "+token}});
-  let msg=await r.json().catch(()=>{return {};});
-  selectedMessage=msg;
-  document.getElementById("emailContent").innerHTML=`<b>From:</b> ${msg.from?.address}<br><b>Subject:</b> ${msg.subject||"(no subject)"}<br><hr>${msg.text}`;
-  document.getElementById("replyForwardButtons").style.display="block";
-}
-
-// Send, Reply, Forward
-async function sendEmail(){
-  const to=document.getElementById("toAddress").value.trim();
-  const subject=document.getElementById("emailSubject").value.trim();
-  const text=document.getElementById("emailBody").value.trim();
-  if(!to || !text){ document.getElementById("sendMessage").innerText="Fill all required fields"; return; }
-  try{
-    const r=await fetch(backendURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ email:account.address,password:account.password,to,subject,text })});
-    const data=await r.json();
-    if(data.success){document.getElementById("sendMessage").innerText="Email sent!";document.getElementById("toAddress").value="";document.getElementById("emailSubject").value="";document.getElementById("emailBody").value="";}
-    else{document.getElementById("sendMessage").innerText="Error: "+JSON.stringify(data);}
-  } catch(e){document.getElementById("sendMessage").innerText="Error: "+e;}
-}
-
-function replyEmail(){
-  if(!selectedMessage) return;
-  document.getElementById("toAddress").value=selectedMessage.from?.address||"";
-  document.getElementById("emailSubject").value="Re: "+(selectedMessage.subject||"(no subject)");
-  document.getElementById("emailBody").value="\n\n---- Original message ----\n"+selectedMessage.text;
-}
-
-function forwardEmail(){
-  if(!selectedMessage) return;
-  document.getElementById("toAddress").value="";
-  document.getElementById("emailSubject").value="Fwd: "+(selectedMessage.subject||"(no subject)");
-  document.getElementById("emailBody").value="\n\n---- Forwarded message ----\nFrom: "+selectedMessage.from?.address+"\n"+selectedMessage.text;
-}
-</script>
 </body>
 </html>
