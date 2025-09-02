@@ -1,250 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mail Client — Login</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mail.tm Webmail</title>
 <style>
-  :root {
-    --accent: #1a73e8;
-    --muted: #6b7280;
-    --bg: #f6f8fc;
-  }
-  body, html {
-    margin: 0;
-    padding: 0;
-    font-family: Inter, system-ui, Arial, sans-serif;
-    background: var(--bg);
-    height: 100%;
-  }
-  .nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 56px;
-    background: #fff;
-    border-bottom: 1px solid #e6e9ef;
-    padding: 0 16px;
-  }
-  .nav .left { font-weight: 700; }
-  .nav .right button {
-    margin-left: 8px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid #ddd;
-    cursor: pointer;
-    background: #fff;
-  }
-  .layout { display: flex; height: calc(100% - 56px); }
-  .sidebar { width: 320px; background: #fff; border-right: 1px solid #e6e9ef; padding: 14px; box-sizing: border-box; overflow: auto; }
-  .main { flex: 1; padding: 18px; box-sizing: border-box; display: flex; flex-direction: column; overflow: auto; }
-  .box { background: #fff; border: 1px solid #e6e9ef; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
-  .field { display: block; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d6d9e3; margin-top: 8px; box-sizing: border-box; }
-  button.primary { background: var(--accent); color: #fff; border: none; padding: 10px 12px; border-radius: 8px; cursor: pointer; }
-  button.ghost { background: #fff; border: 1px solid #d6d9e3; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
-  .small { font-size: 13px; color: var(--muted); }
-  .messages-list { margin-top: 12px; }
-  .message-item { background: #fff; border: 1px solid #eef0f5; border-radius: 8px; padding: 10px; margin-bottom: 10px; cursor: pointer; }
-  .message-item:hover { background: #fbfcfe; }
-  .email-content { background: #fff; border: 1px solid #e6e9ef; border-radius: 10px; padding: 14px; min-height: 220px; overflow: auto; }
-  .controls { display: flex; gap: 8px; margin-top: 10px; }
-  .hidden { display: none; }
-  .status { font-size: 13px; color: var(--muted); margin-top: 8px; white-space: pre-wrap; }
+  body{margin:0;font-family:Arial,sans-serif;background:#f6f8fc;color:#111}
+  .nav{height:50px;background:#fff;border-bottom:1px solid #e6e9ef;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+  .layout{display:flex;height:calc(100vh - 50px)}
+  .sidebar{width:280px;background:#fff;border-right:1px solid #e6e9ef;padding:12px;overflow:auto}
+  .main{flex:1;padding:12px;display:flex;flex-direction:column;overflow:auto}
+  .box{background:#fff;border:1px solid #e6e9ef;border-radius:8px;padding:12px;margin-bottom:12px}
+  .field{display:block;width:100%;padding:8px;border-radius:6px;border:1px solid #d6d9e3;margin-top:6px;box-sizing:border-box}
+  button.primary{background:#1a73e8;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+  button.ghost{background:#fff;border:1px solid #d6d9e3;padding:6px 10px;border-radius:6px;cursor:pointer}
+  .hidden{display:none}
+  .messages-list{margin-top:8px}
+  .message-item{background:#fff;border:1px solid #eef0f5;border-radius:6px;padding:8px;margin-bottom:8px;cursor:pointer}
+  .message-item:hover{background:#fbfcfe}
+  .email-content{border:1px solid #e6e9ef;border-radius:8px;padding:12px;min-height:180px;overflow:auto}
+  .status{font-size:12px;color:#666;margin-top:6px;white-space:pre-wrap}
 </style>
 </head>
 <body>
 
 <div class="nav">
-  <div class="left">Mail Client</div>
-  <div class="right">
-    <button onclick="window.location.href='support.html'">Support</button>
-    <button onclick="window.location.href='admin.html'">Admin</button>
+  <div>Mail.tm Webmail</div>
+  <div>
+    <span id="userEmailUI" class="small"></span>
+    <button class="ghost" id="supportBtn">Support</button>
+    <button class="ghost" id="adminBtn">Admin</button>
   </div>
 </div>
 
 <div class="layout">
 
   <!-- Sidebar: Compose + Inbox -->
-  <div class="sidebar hidden" id="sidebar">
+  <div class="sidebar">
     <div class="box">
       <label>Compose</label>
-      <input class="field" id="composeTo" placeholder="To (email)">
+      <input class="field" id="composeTo" placeholder="To">
       <input class="field" id="composeSubject" placeholder="Subject">
-      <textarea class="field" id="composeBody" rows="6" placeholder="Message"></textarea>
-      <div style="display:flex;gap:8px;margin-top:8px">
+      <textarea class="field" id="composeBody" rows="4" placeholder="Message"></textarea>
+      <div style="display:flex;gap:6px;margin-top:6px">
         <button class="primary" id="sendBtn">Send</button>
         <button class="ghost" id="clearComposeBtn">Clear</button>
       </div>
       <div id="composeStatus" class="status"></div>
     </div>
 
-    <div class="box" style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+    <div class="box">
+      <div style="display:flex;justify-content:space-between">
         <div style="font-weight:700">Inbox</div>
-        <div><button class="ghost" id="refreshBtn">Refresh</button></div>
+        <button class="ghost" id="refreshBtn">Refresh</button>
       </div>
       <div id="messagesList" class="messages-list"></div>
       <div id="inboxStatus" class="status"></div>
     </div>
   </div>
 
-  <!-- Main -->
+  <!-- Main: Login & Message Viewer -->
   <div class="main">
-
-    <!-- Login Box -->
-    <div id="loginBox" class="box">
-      <div style="font-size:18px;font-weight:700">Login</div>
-      <div class="small" style="margin-top:6px">Enter your email and password to access your mailbox.</div>
-
-      <label style="margin-top:12px">Email</label>
-      <input id="loginEmail" class="field" placeholder="you@example.com">
-
-      <label>Password</label>
-      <input id="loginPassword" class="field" type="password" placeholder="password">
-
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="primary" id="loginBtn">Login</button>
-      </div>
-
-      <div id="loginStatus" class="status"></div>
+    <div id="authBox" class="box">
+      <div style="font-weight:700">Login</div>
+      <input class="field" id="authEmail" placeholder="Email">
+      <input class="field" id="authPassword" type="password" placeholder="Password">
+      <button class="primary" id="authBtn">Login</button>
+      <div id="authStatus" class="status"></div>
     </div>
 
-    <!-- Mail Viewer -->
     <div id="viewerBox" class="box hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;justify-content:space-between">
         <div style="font-weight:700">Message</div>
-        <div>
-          <button class="ghost" id="logoutBtn">Logout</button>
-        </div>
+        <button class="ghost" id="logoutBtn">Logout</button>
       </div>
-
-      <div id="emailMeta" class="small" style="margin-top:8px;color:var(--muted)"></div>
-      <div id="emailContent" class="email-content" style="margin-top:12px">Select a message to view full content.</div>
-
-      <div id="replyForwardButtons" class="controls hidden">
+      <div id="emailMeta" class="status"></div>
+      <div id="emailContent" class="email-content">Select a message to view.</div>
+      <div style="display:flex;gap:6px;margin-top:6px">
         <button class="ghost" id="replyBtn">Reply</button>
         <button class="ghost" id="forwardBtn">Forward</button>
       </div>
-
       <div id="viewerStatus" class="status"></div>
     </div>
-
   </div>
 </div>
 
 <script>
-const el = id => document.getElementById(id);
-let account = { address:'', password:'', token:'' };
-let polling = null;
-let selectedMessage = null;
+const el = id => document.getElementById(id)
+let account = { address:'', password:'', token:'' }
+let polling = null
+let selectedMessage = null
 
-// Show/hide login or mail UI
-function onLoggedIn() {
-  hide('loginBox');
-  show('sidebar');
-  show('viewerBox');
-  fetchMessages();
-  if(polling) clearInterval(polling);
-  polling = setInterval(fetchMessages, 6000);
-}
+/* ---------- UI Events ---------- */
+el('authBtn').addEventListener('click', login)
+el('sendBtn').addEventListener('click', sendFromCompose)
+el('clearComposeBtn').addEventListener('click', ()=>{ el('composeTo').value=''; el('composeSubject').value=''; el('composeBody').value=''; el('composeStatus').innerText='' })
+el('refreshBtn').addEventListener('click', fetchMessages)
+el('replyBtn').addEventListener('click', doReply)
+el('forwardBtn').addEventListener('click', doForward)
+el('logoutBtn').addEventListener('click', logout)
 
-function hide(id){ el(id).classList.add('hidden'); }
-function show(id){ el(id).classList.remove('hidden'); }
+/* ---------- Login ---------- */
+async function login(){
+  const email = el('authEmail').value.trim()
+  const password = el('authPassword').value.trim()
+  if(!email || !password){ el('authStatus').innerText='Enter email and password'; return }
+  el('authStatus').innerText='Logging in...'
 
-// Login
-el('loginBtn').addEventListener('click', async () => {
-  const email = el('loginEmail').value.trim();
-  const password = el('loginPassword').value.trim();
-  if(!email || !password){ el('loginStatus').innerText='Enter email & password'; return; }
-  el('loginStatus').innerText='Logging in...';
-
-  try {
-    const resp = await fetch('https://api.mail.tm/token', {
+  try{
+    const resp = await fetch("https://api.mail.tm/token", {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ address: email, password })
-    });
-    const text = await resp.text();
-    let json;
-    try { json = JSON.parse(text); } catch(e){ el('loginStatus').innerText='Server returned non-JSON:\n'+text; return; }
-    if(!json.token){ el('loginStatus').innerText='Login failed'; return; }
-    account.address = email;
-    account.password = password;
-    account.token = json.token;
-    el('loginStatus').innerText='Logged in as '+email;
-    onLoggedIn();
-  } catch(e){
-    el('loginStatus').innerText='Login error: '+e;
-  }
-});
+      body: JSON.stringify({address:email,password})
+    })
+    const data = await resp.json()
+    if(!data.token){ el('authStatus').innerText='Login failed'; return }
+    account = { address:email, password, token:data.token }
+    el('userEmailUI').innerText = email
+    el('authBox').classList.add('hidden')
+    el('viewerBox').classList.remove('hidden')
+    fetchMessages()
+    if(polling) clearInterval(polling)
+    polling = setInterval(fetchMessages,6000)
+  }catch(e){ el('authStatus').innerText='Login error: '+e }
+}
 
-// Logout
-el('logoutBtn').addEventListener('click', ()=>{
-  account={ address:'', password:'', token:'' };
-  selectedMessage=null;
-  hide('sidebar');
-  hide('viewerBox');
-  show('loginBox');
-  el('loginEmail').value='';
-  el('loginPassword').value='';
-  el('loginStatus').innerText='Logged out';
-  if(polling){ clearInterval(polling); polling=null; }
-});
-
-// Fetch inbox
+/* ---------- Fetch Inbox ---------- */
 async function fetchMessages(){
-  if(!account.token) return;
-  el('inboxStatus').innerText='Loading inbox...';
+  if(!account.token) return
+  el('inboxStatus').innerText='Refreshing...'
   try{
-    const r = await fetch('https://api.mail.tm/messages', { headers:{ Authorization: 'Bearer ' + account.token }});
-    const raw = await r.text();
-    let data;
-    try{ data = JSON.parse(raw); } catch(e){ el('inboxStatus').innerText='Server returned non-JSON:\n'+raw; return; }
-    const messages = data['hydra:member'] || [];
-    const list = el('messagesList'); list.innerHTML='';
-    if(messages.length===0){ list.innerHTML='<div class="small" style="color:var(--muted)">No messages</div>'; el('inboxStatus').innerText=''; return; }
+    const r = await fetch("https://api.mail.tm/messages",{headers:{Authorization:'Bearer '+account.token}})
+    const data = await r.json()
+    const list = el('messagesList')
+    list.innerHTML=''
+    const messages = data['hydra:member']||[]
+    if(messages.length===0){ list.innerHTML='<div>No messages</div>'; el('inboxStatus').innerText=''; return }
     messages.forEach(m=>{
-      const d = document.createElement('div'); d.className='message-item';
-      d.innerHTML=`<div style="font-weight:700">${m.from?.address||'unknown'}</div><div class="small">${m.subject||'(no subject)'}</div><div class="small" style="color:var(--muted)">${new Date(m.createdAt).toLocaleString()}</div>`;
-      d.onclick = ()=> showMessage(m.id);
-      list.appendChild(d);
-    });
-    el('inboxStatus').innerText='';
-  } catch(e){ el('inboxStatus').innerText='Fetch inbox error: '+e; }
+      const d = document.createElement('div')
+      d.className='message-item'
+      d.innerText = `${m.from?.address||''} • ${m.subject||'(no subject)'}`
+      d.onclick = ()=> showMessage(m.id)
+      list.appendChild(d)
+    })
+    el('inboxStatus').innerText=''
+  }catch(e){ el('inboxStatus').innerText='Fetch error: '+e }
 }
 
-// Show message
+/* ---------- Show Message ---------- */
 async function showMessage(id){
-  if(!account.token) return;
-  el('viewerStatus').innerText='Loading message...';
+  el('viewerStatus').innerText='Loading...'
   try{
-    const r = await fetch(`https://api.mail.tm/messages/${id}`, { headers:{ Authorization: 'Bearer ' + account.token }});
-    const raw = await r.text();
-    let msg;
-    try{ msg=JSON.parse(raw); } catch(e){ el('viewerStatus').innerText='Server returned non-JSON:\n'+raw; return; }
-    selectedMessage=msg;
-    el('emailMeta').innerText=`${msg.from?.address||''} • ${new Date(msg.createdAt).toLocaleString()}`;
-    el('emailContent').innerHTML=`<div style="font-weight:700">${msg.subject||'(no subject)'}</div><div style="color:var(--muted);margin-top:6px">From: ${msg.from?.address||''}</div><hr style="margin:12px 0">${msg.text||'(no text)'}`;
-    el('replyForwardButtons').classList.remove('hidden');
-    el('viewerStatus').innerText='';
-  }catch(e){ el('viewerStatus').innerText='Show message error: '+e; }
+    const r = await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:'Bearer '+account.token}})
+    const msg = await r.json()
+    selectedMessage = msg
+    el('emailMeta').innerText = `${msg.from?.address||''} • ${new Date(msg.createdAt).toLocaleString()}`
+    el('emailContent').innerText = msg.text||'(no text)'
+    el('viewerStatus').innerText=''
+  }catch(e){ el('viewerStatus').innerText='Error: '+e }
 }
 
-// Reply / Forward
-el('replyBtn').addEventListener('click', ()=>{
-  if(!selectedMessage) return;
-  el('composeTo').value = selectedMessage.from?.address||'';
-  el('composeSubject').value = 'Re: '+(selectedMessage.subject||'(no subject)');
-  el('composeBody').value = '\n\n---- Original message ----\n' + (selectedMessage.text||'');
-  show('sidebar');
-});
-el('forwardBtn').addEventListener('click', ()=>{
-  if(!selectedMessage) return;
-  el('composeTo').value = '';
-  el('composeSubject').value = 'Fwd: '+(selectedMessage.subject||'(no subject)');
-  el('composeBody').value = '\n\n---- Forwarded message ----\nFrom: '+(selectedMessage.from?.address||'')+'\n'+(selectedMessage.text||'');
-  show('sidebar');
-});
+/* ---------- Send Email ---------- */
+async function sendFromCompose(){
+  const to = el('composeTo').value.trim()
+  const subject = el('composeSubject').value.trim()
+  const text = el('composeBody').value.trim()
+  if(!to || !text){ el('composeStatus').innerText='Recipient and text required'; return }
+
+  el('composeStatus').innerText='Sending...'
+  try{
+    const r = await fetch('/api/send',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({from:account.address,password:account.token,to,subject,text})
+    })
+    const data = await r.json()
+    if(data.success){
+      el('composeStatus').innerText='Email sent!'
+      el('composeTo').value=''; el('composeSubject').value=''; el('composeBody').value=''
+      fetchMessages()
+    }else{
+      el('composeStatus').innerText='Send failed: '+JSON.stringify(data)
+    }
+  }catch(e){ el('composeStatus').innerText='Send error: '+e }
+}
+
+/* ---------- Reply / Forward ---------- */
+function doReply(){
+  if(!selectedMessage) return
+  el('composeTo').value = selectedMessage.from?.address||''
+  el('composeSubject').value = 'Re: '+(selectedMessage.subject||'')
+  el('composeBody').value = '\n\n---- Original ----\n'+(selectedMessage.text||'')
+}
+function doForward(){
+  if(!selectedMessage) return
+  el('composeTo').value = ''
+  el('composeSubject').value = 'Fwd: '+(selectedMessage.subject||'')
+  el('composeBody').value = '\n\n---- Forwarded ----\nFrom: '+(selectedMessage.from?.address||'')+'\n'+(selectedMessage.text||'')
+}
+
+/* ---------- Logout ---------- */
+function logout(){
+  account={address:'',password:'',token:''}
+  selectedMessage=null
+  el('authBox').classList.remove('hidden')
+  el('viewerBox').classList.add('hidden')
+  el('userEmailUI').innerText=''
+}
 </script>
 
 </body>
