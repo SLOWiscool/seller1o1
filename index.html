@@ -1,212 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Mail.tm — Webmail</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mail.tm Webmail</title>
 <style>
-  :root{--accent:#1a73e8;--muted:#6b7280;--bg:#f6f8fc}
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:#111}
-  .nav{height:56px;background:#fff;border-bottom:1px solid #e6e9ef;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box}
-  .layout{display:flex;height:calc(100% - 56px)}
-  .sidebar{width:320px;background:#fff;border-right:1px solid #e6e9ef;padding:14px;box-sizing:border-box;overflow:auto}
-  .main{flex:1;padding:18px;box-sizing:border-box;display:flex;flex-direction:column;overflow:auto}
-  .box{background:#fff;border:1px solid #e6e9ef;border-radius:10px;padding:16px;margin-bottom:14px}
-  .field{display:block;width:100%;padding:10px;border-radius:8px;border:1px solid #d6d9e3;margin-top:8px;box-sizing:border-box}
-  button.primary{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:8px;cursor:pointer}
-  button.ghost{background:#fff;border:1px solid #d6d9e3;padding:8px 10px;border-radius:8px;cursor:pointer}
-  .small{font-size:13px;color:var(--muted)}
-  .messages-list{margin-top:12px}
-  .message-item{background:#fff;border:1px solid #eef0f5;border-radius:8px;padding:10px;margin-bottom:10px;cursor:pointer}
-  .message-item:hover{background:#fbfcfe}
-  .email-content{background:#fff;border:1px solid #e6e9ef;border-radius:10px;padding:14px;min-height:220px;overflow:auto}
-  .controls{display:flex;gap:8px;margin-top:10px}
-  .hidden{display:none}
+  :root{--accent:#1a73e8;--bg:#f6f8fc;--muted:#6b7280;}
+  html,body{margin:0;height:100%;font-family:Arial,sans-serif;background:var(--bg);}
+  .nav{height:56px;background:#fff;display:flex;justify-content:space-between;align-items:center;padding:0 16px;border-bottom:1px solid #ddd;}
+  .nav .left{font-weight:700;}
+  .nav button{margin-left:8px;padding:6px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;}
+  .layout{display:flex;height:calc(100% - 56px);}
+  .sidebar{width:320px;background:#fff;border-right:1px solid #ddd;padding:12px;box-sizing:border-box;overflow:auto;}
+  .main{flex:1;padding:12px;display:flex;flex-direction:column;overflow:auto;}
+  .box{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:12px;}
+  .field{width:100%;padding:8px;margin-top:6px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;}
+  button.primary{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;}
+  button.ghost{background:#fff;border:1px solid #ccc;padding:6px 10px;border-radius:6px;cursor:pointer;}
+  .small{font-size:13px;color:var(--muted);}
+  .messages-list{margin-top:12px;}
+  .message-item{border:1px solid #eee;border-radius:6px;padding:8px;margin-bottom:6px;cursor:pointer;}
+  .message-item:hover{background:#f9f9f9;}
+  .email-content{border:1px solid #ddd;border-radius:8px;padding:10px;min-height:180px;overflow:auto;}
+  .controls{display:flex;gap:6px;margin-top:8px;}
+  .hidden{display:none;}
 </style>
 </head>
 <body>
 
 <div class="nav">
-  <div class="left">Mail.tm — Webmail</div>
+  <div class="left">Mail.tm Webmail</div>
   <div class="right">
-    <span id="userEmailUI" class="small" style="margin-right:12px"></span>
-    <a href="support.html"><button class="ghost">Support</button></a>
-    <a href="admin.html"><button class="ghost">Admin</button></a>
+    <span id="userEmailUI" class="small"></span>
+    <button id="supportBtn">Support</button>
+    <button id="adminOpenBtn">Admin</button>
   </div>
 </div>
 
 <div class="layout">
 
-  <!-- Sidebar: Compose + Inbox list -->
+  <!-- Left: Compose + Inbox -->
   <div class="sidebar">
     <div class="box">
       <label>Compose</label>
-      <input class="field" id="composeTo" placeholder="To (email)">
-      <input class="field" id="composeSubject" placeholder="Subject">
-      <textarea class="field" id="composeBody" rows="6" placeholder="Message"></textarea>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="primary" id="sendBtn">Send</button>
-        <button class="ghost" id="clearComposeBtn">Clear</button>
+      <input id="composeTo" class="field" placeholder="To">
+      <input id="composeSubject" class="field" placeholder="Subject">
+      <textarea id="composeBody" class="field" rows="5" placeholder="Message"></textarea>
+      <div style="margin-top:6px;display:flex;gap:6px;">
+        <button id="sendBtn" class="primary">Send</button>
+        <button id="clearComposeBtn" class="ghost">Clear</button>
       </div>
-      <div id="composeStatus" class="small" style="color:var(--muted);margin-top:6px"></div>
+      <div id="composeStatus" class="small" style="margin-top:6px;"></div>
     </div>
 
-    <div class="box" style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-weight:700">Inbox</div>
-        <div><button class="ghost" id="refreshBtn">Refresh</button></div>
+    <div class="box">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-weight:700;">Inbox</div>
+        <button id="refreshBtn" class="ghost">Refresh</button>
       </div>
-      <div id="messagesList" class="messages-list" style="margin-top:12px"></div>
-      <div id="inboxStatus" class="small" style="color:var(--muted);margin-top:6px"></div>
+      <div id="messagesList" class="messages-list"></div>
+      <div id="inboxStatus" class="small" style="margin-top:6px;"></div>
     </div>
   </div>
 
-  <!-- Main: Login / Signup + Message viewer -->
+  <!-- Right: Login / Message viewer -->
   <div class="main">
-
-    <!-- Login / Signup -->
     <div id="authBox" class="box">
-      <div id="authTitle" style="font-size:18px;font-weight:700">Create account</div>
-      <div class="small" style="margin-top:6px">Choose username + password or switch to login.</div>
-
-      <label style="margin-top:12px">Username (no domain)</label>
-      <input id="authUsername" class="field" placeholder="yourname">
-
+      <div style="font-weight:700;font-size:16px;">Login / Create Account</div>
+      <label>Username (full email for login)</label>
+      <input id="authUsername" class="field" placeholder="yourname@domain">
       <label>Password</label>
-      <input id="authPassword" class="field" type="password" placeholder="password (min 8)">
-
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="primary" id="authActionBtn">Create account</button>
-        <button class="ghost" id="toggleAuthBtn">Switch to login</button>
+      <input id="authPassword" class="field" type="password" placeholder="password">
+      <div style="margin-top:6px;display:flex;gap:6px;">
+        <button id="authActionBtn" class="primary">Login / Signup</button>
       </div>
-
-      <div id="authStatus" class="small" style="color:var(--muted);margin-top:6px"></div>
+      <div id="authStatus" class="small" style="margin-top:6px;"></div>
     </div>
 
-    <!-- Mail viewer -->
     <div id="viewerBox" class="box hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-weight:700">Message</div>
-        <div>
-          <button class="ghost" id="logoutBtn">Logout</button>
-        </div>
+      <div style="display:flex;justify-content:space-between;">
+        <div style="font-weight:700;">Message</div>
+        <button id="logoutBtn" class="ghost">Logout</button>
       </div>
-
-      <div id="emailMeta" class="small" style="margin-top:8px;color:var(--muted)"></div>
-      <div id="emailContent" class="email-content" style="margin-top:12px">Select a message to view full content.</div>
-
-      <div id="replyForwardButtons" class="controls hidden" style="margin-top:12px">
-        <button class="ghost" id="replyBtn">Reply</button>
-        <button class="ghost" id="forwardBtn">Forward</button>
+      <div id="emailMeta" class="small" style="margin-top:6px;"></div>
+      <div id="emailContent" class="email-content" style="margin-top:6px;">Select a message</div>
+      <div class="controls hidden" id="replyForwardButtons">
+        <button id="replyBtn" class="ghost">Reply</button>
+        <button id="forwardBtn" class="ghost">Forward</button>
       </div>
-
-      <div id="viewerStatus" class="small" style="color:var(--muted);margin-top:6px"></div>
+      <div id="viewerStatus" class="small" style="margin-top:6px;"></div>
     </div>
-
   </div>
 </div>
 
 <script>
-const el = id => document.getElementById(id);
-let account = {address:'', password:'', token:''}, polling=null, selectedMessage=null;
-let authModeCreate = true;
+const el = id=>document.getElementById(id);
+function show(id){el(id).classList.remove('hidden')}
+function hide(id){el(id).classList.add('hidden')}
+function setStatus(id,msg){el(id).innerText=msg||''}
 
-el('toggleAuthBtn').addEventListener('click',()=>{
-  authModeCreate=!authModeCreate;
-  el('authTitle').innerText=authModeCreate?'Create account':'Login';
-  el('authActionBtn').innerText=authModeCreate?'Create account':'Login';
-  el('authStatus').innerText='';
-});
+let account={address:'',password:'',token:''}, polling=null, selectedMessage=null;
+
+// Event listeners
 el('authActionBtn').addEventListener('click', authAction);
+el('logoutBtn').addEventListener('click', logout);
 el('sendBtn').addEventListener('click', sendFromCompose);
-el('clearComposeBtn').addEventListener('click',()=>{el('composeTo').value='';el('composeSubject').value='';el('composeBody').value='';el('composeStatus').innerText='';});
+el('clearComposeBtn').addEventListener('click', ()=>{el('composeTo').value='';el('composeSubject').value='';el('composeBody').value='';setStatus('composeStatus','');});
 el('refreshBtn').addEventListener('click', fetchMessages);
 el('replyBtn').addEventListener('click', doReply);
 el('forwardBtn').addEventListener('click', doForward);
-el('logoutBtn').addEventListener('click', logout);
 
-function setStatus(id,msg){el(id).innerText=msg||''}
-
-// --- Auth functions ---
+// Auth
 async function authAction(){
-  const username = (el('authUsername').value||'').trim();
-  let password = (el('authPassword').value||'').trim();
-  if(!username || !password){setStatus('authStatus','Enter username and password'); return;}
-  if(password.length<8) password+='Aa1!234';
-  if(authModeCreate){
-    // Create account via mail.tm domains
-    try{
-      const dres=await fetch("https://api.mail.tm/domains");
-      const domains= (await dres.json())['hydra:member'];
-      const domain = domains[Math.floor(Math.random()*domains.length)].domain;
-      const address = `${username}@${domain}`;
-      const res = await fetch("https://api.mail.tm/accounts",{method:'POST', headers:{"Content-Type":"application/json"}, body:JSON.stringify({address,password})});
-      if(!res.ok){setStatus('authStatus','Account creation failed');return;}
-      account.address = address; account.password=password;
-    }catch(e){setStatus('authStatus','Error creating account: '+e);return;}
-  } else { account.address=username; account.password=password; }
-  // Get token
+  const username=(el('authUsername').value||'').trim();
+  const password=(el('authPassword').value||'').trim();
+  if(!username||!password){setStatus('authStatus','Enter credentials');return;}
+  setStatus('authStatus','Logging in...');
   try{
-    const t=await fetch("https://api.mail.tm/token",{method:'POST', headers:{"Content-Type":"application/json"}, body:JSON.stringify({address:account.address,password:account.password})});
-    const tj=await t.json(); if(!tj.token){setStatus('authStatus','Token error');return;}
-    account.token=tj.token; onLoggedIn();
-  }catch(e){setStatus('authStatus','Token fetch error: '+e);}
+    const res=await fetch("https://api.mail.tm/token",{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({address:username,password})});
+    const data=await res.json();
+    if(!data.token){setStatus('authStatus','Login failed');return;}
+    account={address:username,password,token:data.token};
+    setStatus('authStatus','Logged in as '+username);
+    el('userEmailUI').innerText=username;
+    hide('authBox'); show('viewerBox');
+    fetchMessages();
+    if(polling) clearInterval(polling);
+    polling=setInterval(fetchMessages,6000);
+  }catch(e){setStatus('authStatus','Error: '+e);}
 }
 
-function onLoggedIn(){
-  el('userEmailUI').innerText=account.address;
-  el('authBox').classList.add('hidden');
-  el('viewerBox').classList.remove('hidden');
-  fetchMessages();
-  if(polling) clearInterval(polling);
-  polling = setInterval(fetchMessages,6000);
-}
-
+// Fetch messages
 async function fetchMessages(){
-  if(!account.token) return;
-  setStatus('inboxStatus','Refreshing...');
+  if(!account.token)return;
+  setStatus('inboxStatus','Loading...');
   try{
-    const r = await fetch("https://api.mail.tm/messages",{headers:{Authorization:'Bearer '+account.token}});
-    const data = await r.json();
-    const list = el('messagesList'); list.innerHTML='';
-    const messages = data['hydra:member']||[];
-    if(messages.length===0){list.innerHTML='<div class="small" style="color:var(--muted)">No messages</div>';setStatus('inboxStatus','');return;}
-    messages.forEach(m=>{
-      const d = document.createElement('div'); d.className='message-item';
-      d.innerHTML=`<div style="font-weight:700">${m.from?.address||'unknown'}</div><div class="small">${m.subject||'(no subject)'}</div><div class="small" style="color:var(--muted)">${new Date(m.createdAt).toLocaleString()}</div>`;
-      d.onclick=()=>showMessage(m.id);
-      list.appendChild(d);
+    const res=await fetch("https://api.mail.tm/messages",{headers:{Authorization:'Bearer '+account.token}});
+    const data=await res.json();
+    const list=el('messagesList'); list.innerHTML='';
+    if(!data['hydra:member']||data['hydra:member'].length===0){list.innerHTML='<div class="small" style="color:#999">No messages</div>';setStatus('inboxStatus','');return;}
+    data['hydra:member'].forEach(m=>{
+      const div=document.createElement('div'); div.className='message-item';
+      div.innerHTML=`<b>${m.from?.address||''}</b><div class="small">${m.subject||'(no subject)'}</div><div class="small">${new Date(m.createdAt).toLocaleString()}</div>`;
+      div.onclick=()=>showMessage(m.id);
+      list.appendChild(div);
     });
     setStatus('inboxStatus','');
-  }catch(e){setStatus('inboxStatus','Error: '+e);}
+  }catch(e){setStatus('inboxStatus','Fetch error: '+e);}
 }
 
+// Show single message
 async function showMessage(id){
-  if(!account.token) return;
   setStatus('viewerStatus','Loading...');
   try{
-    const r = await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:'Bearer '+account.token}});
-    const msg = await r.json(); selectedMessage=msg;
+    const res=await fetch("https://api.mail.tm/messages/"+id,{headers:{Authorization:'Bearer '+account.token}});
+    const msg=await res.json();
+    selectedMessage=msg;
     el('emailMeta').innerText=`${msg.from?.address||''} • ${new Date(msg.createdAt).toLocaleString()}`;
-    el('emailContent').innerHTML=`<div style="font-weight:700">${msg.subject||'(no subject)'}</div><hr>${msg.text||'(no text)'}`;
-    el('replyForwardButtons').classList.remove('hidden');
+    el('emailContent').innerHTML=`<b>${msg.subject||''}</b><div style="color:#666;margin-top:6px">From: ${msg.from?.address||''}</div><hr style="margin:6px 0;">${msg.text||''}`;
+    show('replyForwardButtons');
     setStatus('viewerStatus','');
   }catch(e){setStatus('viewerStatus','Error: '+e);}
 }
 
+// Reply / Forward
+function doReply(){if(!selectedMessage)return; el('composeTo').value=selectedMessage.from?.address||''; el('composeSubject').value='Re: '+(selectedMessage.subject||''); el('composeBody').value='\n\n---- Original ----\n'+(selectedMessage.text||'');}
+function doForward(){if(!selectedMessage)return; el('composeTo').value=''; el('composeSubject').value='Fwd: '+(selectedMessage.subject||''); el('composeBody').value='\n\n---- Forwarded ----\nFrom: '+(selectedMessage.from?.address||'')+'\n'+(selectedMessage.text||'');}
+
+// Send
 async function sendFromCompose(){
   const to=el('composeTo').value.trim(), subject=el('composeSubject').value.trim(), text=el('composeBody').value.trim();
   if(!to||!text){setStatus('composeStatus','Recipient and message required');return;}
   try{
-    const r = await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from:account.address,password:account.token,to,subject,text})});
-    if(r.ok){setStatus('composeStatus','Email sent');el('composeTo').value='';el('composeSubject').value='';el('composeBody').value='';fetchMessages();}
-    else setStatus('composeStatus','Send failed');
+    const res=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from:account.address,password:account.token,to,subject,text})});
+    const data=await res.json();
+    if(data.success){setStatus('composeStatus','Sent!');el('composeTo').value='';el('composeSubject').value='';el('composeBody').value='';fetchMessages();}
+    else setStatus('composeStatus','Send failed: '+JSON.stringify(data));
   }catch(e){setStatus('composeStatus','Error: '+e);}
 }
 
-function doReply(){if(!selectedMessage) return; el('composeTo').value=selectedMessage.from?.address||''; el('composeSubject').value='Re: '+(selectedMessage.subject||''); el('composeBody').value='\n\n---- Original ----\n'+(selectedMessage.text||'');}
-function doForward(){if(!selectedMessage) return; el('composeTo').value=''; el('composeSubject').value='Fwd: '+(selectedMessage.subject||''); el('composeBody').value='\n\n---- Forwarded ----\nFrom: '+(selectedMessage.from?.address||'')+'\n'+(selectedMessage.text||'');}
-function logout(){account={address:'',password:'',token:''};if(polling) clearInterval(polling);selectedMessage=null;el('userEmailUI').innerText='';el('authBox').classList.remove('hidden');el('viewerBox').classList.add('hidden');el('messagesList').innerHTML='';}
+// Logout
+function logout(){account={address:'',password:'',token:''};selectedMessage=null;el('userEmailUI').innerText='';show('authBox');hide('viewerBox');if(polling)clearInterval(polling);}
 </script>
 
 </body>
