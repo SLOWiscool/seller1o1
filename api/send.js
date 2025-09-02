@@ -1,23 +1,29 @@
-import nodemailer from 'nodemailer';
+// send.js — Node.js backend for sending email via Mail.tm SMTP
+const nodemailer = require('nodemailer');
+const express = require('express');
+const bodyParser = require('body-parser');
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+const app = express();
+app.use(bodyParser.json());
 
-  const { from, password, to, subject, text } = req.body || {};
+// POST /api/send
+// Body: { from, password, to, subject, text }
+app.post('/api/send', async (req, res) => {
+  const { from, password, to, subject, text } = req.body;
 
-  if (!from || !password || !to || !subject || !text) {
+  if(!from || !password || !to || !subject || !text){
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  try {
-    // Mail.tm SMTP
+  try{
+    // Mail.tm SMTP setup
     const transporter = nodemailer.createTransport({
       host: 'smtp.mail.tm',
       port: 587,
       secure: false,
       auth: {
         user: from,
-        pass: password // Mail.tm JWT token
+        pass: password  // Mail.tm token
       }
     });
 
@@ -28,8 +34,13 @@ export default async function handler(req, res) {
       text
     });
 
-    return res.status(200).json({ success: true, messageId: info.messageId });
-  } catch (e) {
-    return res.status(500).json({ error: 'Send error', details: e.toString() });
+    res.json({ success: true, messageId: info.messageId });
+  }catch(e){
+    console.error('Send error:', e);
+    res.status(500).json({ success:false, error: e.message });
   }
-}
+});
+
+// start server (e.g., on Vercel you might export as a function)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, ()=>console.log(`send.js running on port ${PORT}`));
